@@ -1,0 +1,31 @@
+import { redirect } from "next/navigation";
+
+import { PatientDashboardShell } from "@/components/dashboard/patient-dashboard-shell";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+
+export default async function PatientDashboardPage() {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/auth/login?redirectTo=/dashboard/patient");
+  }
+
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+
+  if (profile?.role === "doctor") {
+    redirect("/dashboard/doctor");
+  }
+
+  if (profile?.role === "admin") {
+    redirect("/admin");
+  }
+
+  if (profile?.role !== "patient") {
+    redirect("/dashboard");
+  }
+
+  return <PatientDashboardShell />;
+}

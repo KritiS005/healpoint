@@ -1,0 +1,90 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import * as React from "react";
+import { Suspense } from "react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { createClient } from "@/lib/supabase/client";
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto flex min-h-screen items-center justify-center px-6 py-16 text-sm text-muted-foreground">Loading…</div>}>
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+function LoginPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirectTo") ?? "/dashboard";
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [error, setError] = React.useState<string | null>(null);
+  const [loading, setLoading] = React.useState(false);
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+      return;
+    }
+
+    router.push(redirectTo);
+  }
+
+  return (
+    <main className="mx-auto flex min-h-screen max-w-6xl items-center justify-center px-6 py-16">
+      <div className="grid w-full max-w-5xl gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+        <div className="space-y-6">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-3 py-1 text-sm text-muted-foreground backdrop-blur">
+            <span className="size-2 rounded-full bg-sky-400" />
+            Continuity for your care team and patients
+          </div>
+          <div className="space-y-4">
+            <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">Welcome back to HealPoint</h1>
+            <p className="max-w-xl text-lg leading-8 text-muted-foreground">
+              Review appointments, collaborate with clinicians, and stay on top of your health journey in one secure place.
+            </p>
+          </div>
+        </div>
+
+        <Card className="border-white/10 bg-background/70 p-2 shadow-[0_20px_80px_rgba(15,23,42,0.35)] backdrop-blur-2xl">
+          <CardHeader className="px-6 pt-6">
+            <CardTitle className="text-2xl text-white">Log in</CardTitle>
+            <CardDescription>Access your dashboard using your email and password.</CardDescription>
+          </CardHeader>
+          <CardContent className="px-6 pb-6">
+            <form className="grid gap-4" onSubmit={handleSubmit}>
+              <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
+              <Button type="submit" className="mt-2" disabled={loading}>
+                {loading ? "Signing in..." : "Sign in"}
+              </Button>
+            </form>
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-sm">
+              <Link href={`/auth/forgot-password?redirectTo=${encodeURIComponent(redirectTo)}`} className="font-semibold text-primary hover:underline">
+                Forgot password?
+              </Link>
+              <Link href={`/auth/signup?redirectTo=${encodeURIComponent(redirectTo)}`} className="font-semibold text-primary hover:underline">
+                Create account
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </main>
+  );
+}
