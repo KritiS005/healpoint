@@ -1,6 +1,12 @@
+"use client";
+
 import { createBrowserClient } from "@supabase/ssr";
 
+let browserClient: ReturnType<typeof createBrowserClient> | undefined;
+
 export function createClient() {
+  if (browserClient) return browserClient;
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
 
@@ -8,5 +14,6 @@ export function createClient() {
     throw new Error("Supabase environment variables are not configured.");
   }
 
-  return createBrowserClient(url, key);
+  browserClient = createBrowserClient(url, key);
+  return browserClient;
 }

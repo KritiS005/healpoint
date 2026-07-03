@@ -1,4 +1,4 @@
-import { hasSupabaseConfig, supabase } from "./supabase-client";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export type ProfileRole = "patient" | "doctor" | "admin";
 
@@ -79,6 +79,12 @@ export interface AiConversationRow {
   context_type: "report" | "prescription" | "general";
   created_at: string;
 }
+
+// ---------------------------------------------------------------------------
+// MOCK DATA — used ONLY as a last-resort fallback. Kept intentionally for
+// debugging / offline development. Every place this is returned logs a
+// warning via warnFallback() so you can see it happening in real time.
+// ---------------------------------------------------------------------------
 
 const profiles: ProfileRow[] = [
   {
@@ -182,7 +188,8 @@ const medicalRecords: MedicalRecordRow[] = [
     file_url: "/records/blood-report.pdf",
     record_type: "Blood Report",
     uploaded_at: "2026-06-12T08:00:00.000Z",
-    ai_summary: "Hemoglobin is slightly above the usual range, while cholesterol remains moderate. This should be reviewed with a clinician for context.",
+    ai_summary:
+      "Hemoglobin is slightly above the usual range, while cholesterol remains moderate. This should be reviewed with a clinician for context.",
   },
   {
     id: "record-002",
@@ -190,7 +197,8 @@ const medicalRecords: MedicalRecordRow[] = [
     file_url: "/records/prescription.pdf",
     record_type: "Prescription Summary",
     uploaded_at: "2026-06-04T09:30:00.000Z",
-    ai_summary: "Medication plan includes hydration reminders and follow-up guidance for blood pressure monitoring.",
+    ai_summary:
+      "Medication plan includes hydration reminders and follow-up guidance for blood pressure monitoring.",
   },
 ];
 
@@ -247,7 +255,8 @@ const aiConversations: AiConversationRow[] = [
     id: "ai-conversation-001",
     user_id: "profile-patient-001",
     message: "What does this report mean in simple words?",
-    response: "This summary points to a few markers that may be worth discussing with your clinician. It is not a diagnosis.",
+    response:
+      "This summary points to a few markers that may be worth discussing with your clinician. It is not a diagnosis.",
     context_type: "report",
     created_at: "2026-06-30T09:00:00.000Z",
   },
@@ -255,134 +264,173 @@ const aiConversations: AiConversationRow[] = [
     id: "ai-conversation-002",
     user_id: "profile-patient-001",
     message: "Should I be worried about these values?",
-    response: "The assistant can explain the terms, but a clinician should confirm the meaning for your personal case.",
+    response:
+      "The assistant can explain the terms, but a clinician should confirm the meaning for your personal case.",
     context_type: "general",
     created_at: "2026-06-30T09:10:00.000Z",
   },
 ];
 
-async function getSupabaseRows<T>(table: string): Promise<T[]> {
-  if (!hasSupabaseConfig() || !supabase) {
-    return [];
-  }
+// ---------------------------------------------------------------------------
+// Diagnostics helper — logs WHY a fallback happened, instead of swallowing it.
+// ---------------------------------------------------------------------------
 
-  const { data, error } = await supabase.from(table).select("*");
-
-  if (error) {
-    console.error(`Failed to load ${table} from Supabase`, error);
-    return [];
-  }
-
-  return (data as T[]) ?? [];
+function warnFallback(table: string, reason: string) {
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[mock-data] Falling back to MOCK data for "${table}". Reason: ${reason}`
+  );
 }
 
-export async function getProfiles(): Promise<ProfileRow[]> {
-  if (hasSupabaseConfig() && supabase) {
-    const rows = await getSupabaseRows<ProfileRow>("profiles");
-    if (rows.length > 0) {
-      return rows;
-    }
+async function getSupabaseRows<T>(table: string): Promise<T[] | null> {
+  let client;
+  try {
+    client = await createServerSupabaseClient();
+  } catch (err) {
+    warnFallback(table, `Failed to create Supabase server client — ${(err as Error).message}`);
+    return null;
   }
 
-  return profiles;
+  const { data, error } = await client.from(table).select("*");
+
+  if (error) {
+    // Previously invisible: a real Supabase error (RLS denial, missing
+    // table, bad column, etc.) was silently swallowed and treated the
+    // same as "no rows". Now it's surfaced explicitly.
+    warnFallback(
+      table,
+      `Supabase query failed — ${error.message} (code: ${error.code ?? "unknown"}). ` +
+        `This is very often caused by a Row Level Security (RLS) policy blocking the SELECT.`
+    );
+    return null;
+  }
+
+  if (!data || data.length === 0) {
+    warnFallback(table, `Supabase query succeeded but returned 0 rows. Table may be empty.`);
+    return null;
+  }
+
+  return data as T[];
+}
+
+async function getCurrentUser() {
+  let client;
+  try {
+    client = await createServerSupabaseClient();
+  } catch (err) {
+    warnFallback("auth.getUser", `Failed to create Supabase server client — ${(err as Error).message}`);
+    return null;
+  }
+
+  const { data, error } = await client.auth.getUser();
+
+  if (error) {
+    warnFallback(
+      "auth.getUser",
+      `Auth session lookup failed — ${error.message}. ` +
+        `If this happens on first load, make sure middleware.ts is refreshing the ` +
+        `Supabase session cookie on every request (see note below).`
+    );
+    return null;
+  }
+
+  if (!data.user) {
+    warnFallback("auth.getUser", "No authenticated user found for this request (no active session).");
+    return null;
+  }
+
+  return data.user;
+}
+
+// ---------------------------------------------------------------------------
+// Public getters
+// ---------------------------------------------------------------------------
+
+export async function getProfiles(): Promise<ProfileRow[]> {
+  const rows = await getSupabaseRows<ProfileRow>("profiles");
+  return rows ?? profiles;
 }
 
 export async function getPatientProfile(): Promise<ProfileRow> {
-  if (hasSupabaseConfig() && supabase) {
-    const rows = await getSupabaseRows<ProfileRow>("profiles");
-    const patientRow = rows.find((profile) => profile.role === "patient");
-    if (patientRow) {
-      return patientRow;
-    }
+  const user = await getCurrentUser();
+
+  if (!user) {
+    warnFallback("profiles (current patient)", "No authenticated user — returning mock profile.");
+    return profiles[0];
   }
 
-  return profiles.find((profile) => profile.role === "patient") ?? profiles[0];
+  let client;
+  try {
+    client = await createServerSupabaseClient();
+  } catch (err) {
+    warnFallback("profiles (current patient)", `Failed to create Supabase server client — ${(err as Error).message}`);
+    return profiles[0];
+  }
+
+  const { data, error } = await client
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single();
+
+  if (error) {
+    warnFallback(
+      "profiles (current patient)",
+      `Query for id="${user.id}" failed — ${error.message} (code: ${error.code ?? "unknown"}). ` +
+        `Check that a row exists in "profiles" whose "id" column exactly matches the ` +
+        `Supabase Auth user id, and that RLS allows the user to select their own row.`
+    );
+    return profiles[0];
+  }
+
+  if (!data) {
+    warnFallback(
+      "profiles (current patient)",
+      `No profile row found with id="${user.id}". The profiles table likely has no ` +
+        `matching row for this auth user — check your signup/profile-creation flow.`
+    );
+    return profiles[0];
+  }
+
+  return data as ProfileRow;
 }
 
 export async function getDoctors(): Promise<DoctorRow[]> {
-  if (hasSupabaseConfig() && supabase) {
-    const rows = await getSupabaseRows<DoctorRow>("doctors");
-    if (rows.length > 0) {
-      return rows;
-    }
-  }
-
-  return doctors;
+  const rows = await getSupabaseRows<DoctorRow>("doctors");
+  return rows ?? doctors;
 }
 
 export async function getPatients(): Promise<PatientRow[]> {
-  if (hasSupabaseConfig() && supabase) {
-    const rows = await getSupabaseRows<PatientRow>("patients");
-    if (rows.length > 0) {
-      return rows;
-    }
-  }
-
-  return patients;
+  const rows = await getSupabaseRows<PatientRow>("patients");
+  return rows ?? patients;
 }
 
 export async function getAppointments(): Promise<AppointmentRow[]> {
-  if (hasSupabaseConfig() && supabase) {
-    const rows = await getSupabaseRows<AppointmentRow>("appointments");
-    if (rows.length > 0) {
-      return rows;
-    }
-  }
-
-  return appointments;
+  const rows = await getSupabaseRows<AppointmentRow>("appointments");
+  return rows ?? appointments;
 }
 
 export async function getMedicalRecords(): Promise<MedicalRecordRow[]> {
-  if (hasSupabaseConfig() && supabase) {
-    const rows = await getSupabaseRows<MedicalRecordRow>("medical_records");
-    if (rows.length > 0) {
-      return rows;
-    }
-  }
-
-  return medicalRecords;
+  const rows = await getSupabaseRows<MedicalRecordRow>("medical_records");
+  return rows ?? medicalRecords;
 }
 
 export async function getPrescriptions(): Promise<PrescriptionRow[]> {
-  if (hasSupabaseConfig() && supabase) {
-    const rows = await getSupabaseRows<PrescriptionRow>("prescriptions");
-    if (rows.length > 0) {
-      return rows;
-    }
-  }
-
-  return prescriptions;
+  const rows = await getSupabaseRows<PrescriptionRow>("prescriptions");
+  return rows ?? prescriptions;
 }
 
 export async function getPayments(): Promise<PaymentRow[]> {
-  if (hasSupabaseConfig() && supabase) {
-    const rows = await getSupabaseRows<PaymentRow>("payments");
-    if (rows.length > 0) {
-      return rows;
-    }
-  }
-
-  return payments;
+  const rows = await getSupabaseRows<PaymentRow>("payments");
+  return rows ?? payments;
 }
 
 export async function getNotifications(): Promise<NotificationRow[]> {
-  if (hasSupabaseConfig() && supabase) {
-    const rows = await getSupabaseRows<NotificationRow>("notifications");
-    if (rows.length > 0) {
-      return rows;
-    }
-  }
-
-  return notifications;
+  const rows = await getSupabaseRows<NotificationRow>("notifications");
+  return rows ?? notifications;
 }
 
 export async function getAiConversations(): Promise<AiConversationRow[]> {
-  if (hasSupabaseConfig() && supabase) {
-    const rows = await getSupabaseRows<AiConversationRow>("ai_conversations");
-    if (rows.length > 0) {
-      return rows;
-    }
-  }
-
-  return aiConversations;
+  const rows = await getSupabaseRows<AiConversationRow>("ai_conversations");
+  return rows ?? aiConversations;
 }

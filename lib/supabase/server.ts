@@ -12,14 +12,19 @@ export async function createServerSupabaseClient() {
 
   return createServerClient(url, key, {
     cookies: {
-      getAll() {
-        return cookieStore.getAll();
+      async getAll() {
+        return (await cookieStore).getAll();
       },
-      setAll(cookiesToSet: { name: string; value: string; options?: CookieOptions }[]) {
+      async setAll(cookiesToSet: { name: string; value: string; options?: CookieOptions }[]) {
         try {
-          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
+          const cookieStoreInstance = await cookieStore;
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStoreInstance.set(name, value, options);
+          });
         } catch {
-          // Server components can not set cookies directly.
+          // The `setAll` method will be called from Server Components
+          // where cookies cannot be set. This catch block prevents
+          // the app from crashing.
         }
       },
     },
