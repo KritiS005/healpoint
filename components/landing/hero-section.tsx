@@ -34,7 +34,13 @@ const DoctorAvatar3 = () => (
   </svg>
 );
 
-export function HeroSection() {
+export function HeroSection({
+  isLoggedIn = false,
+  dashboardHref = "/dashboard",
+}: {
+  isLoggedIn?: boolean;
+  dashboardHref?: string;
+}) {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll();
 
@@ -113,25 +119,27 @@ export function HeroSection() {
                 {/* CTA */}
                 <div className="flex flex-col gap-3">
                   <a
-                    href="/booking"
+                    href={isLoggedIn ? dashboardHref : "/booking"}
                     className="flex w-full items-center justify-center bg-[#1f6feb] hover:bg-[#1a5fd4] text-white font-bold uppercase tracking-widest text-[11px] py-3.5 px-6 rounded-full transition-all duration-300 shadow-[0_4px_18px_rgba(31,111,235,0.35)] hover:shadow-[0_6px_26px_rgba(31,111,235,0.5)] hover:-translate-y-0.5 active:translate-y-0"
                   >
-                    Get Started
+                    {isLoggedIn ? "Go to Dashboard" : "Get Started"}
                   </a>
-                  <div className="flex gap-3">
-                    <a
-                      href="/auth/login"
-                      className="flex flex-1 items-center justify-center rounded-full border border-[#1f6feb]/20 bg-white/80 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-[#1f6feb] transition-all duration-300 hover:border-[#1f6feb]/40 hover:bg-white"
-                    >
-                      Log in
-                    </a>
-                    <a
-                      href="/auth/signup"
-                      className="flex flex-1 items-center justify-center rounded-full border border-[#1f6feb]/20 bg-[#1f6feb]/10 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-[#1f6feb] transition-all duration-300 hover:border-[#1f6feb]/40 hover:bg-[#1f6feb]/15"
-                    >
-                      Sign up
-                    </a>
-                  </div>
+                  {!isLoggedIn && (
+                    <div className="flex gap-3">
+                      <a
+                        href="/auth/login"
+                        className="flex flex-1 items-center justify-center rounded-full border border-[#1f6feb]/20 bg-white/80 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-[#1f6feb] transition-all duration-300 hover:border-[#1f6feb]/40 hover:bg-white"
+                      >
+                        Log in
+                      </a>
+                      <a
+                        href="/auth/signup"
+                        className="flex flex-1 items-center justify-center rounded-full border border-[#1f6feb]/20 bg-[#1f6feb]/10 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-[#1f6feb] transition-all duration-300 hover:border-[#1f6feb]/40 hover:bg-[#1f6feb]/15"
+                      >
+                        Sign up
+                      </a>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             </Reveal>

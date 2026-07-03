@@ -10,6 +10,9 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 type SignalMessage =
+  | { type: "offer"; sdp: RTCSessionDescriptionInit; senderId: string; sentAt: string }
+  | { type: "answer"; sdp: RTCSessionDescriptionInit; senderId: string; sentAt: string }
+  | { type: "ice"; candidate: RTCIceCandidateInit; senderId: string; sentAt: string }
   | { type: "chat"; text: string; senderId: string; sentAt: string }
   | { type: "presence"; status: "waiting" | "active" | "ended"; senderId: string; sentAt: string };
 
@@ -25,7 +28,10 @@ export function VideoCallRoom({ roomId }: { roomId: string }) {
   const remoteVideoRef = React.useRef<HTMLVideoElement | null>(null);
   const localStreamRef = React.useRef<MediaStream | null>(null);
   const peerRef = React.useRef<RTCPeerConnection | null>(null);
+  const channelRef = React.useRef<ReturnType<ReturnType<typeof createClient>["channel"]> | null>(null);
+  const isInitiatorRef = React.useRef(false);
   const senderId = React.useMemo(() => crypto.randomUUID(), []);
+
   const [status, setStatus] = React.useState<"prejoin" | "waiting" | "active" | "reconnecting" | "failed" | "ended">("prejoin");
   const [error, setError] = React.useState<string | null>(null);
   const [micEnabled, setMicEnabled] = React.useState(true);
@@ -33,12 +39,53 @@ export function VideoCallRoom({ roomId }: { roomId: string }) {
   const [chatInput, setChatInput] = React.useState("");
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
 
+  const broadcast = React.useCallback((payload: SignalMessage) => {
+    void channelRef.current?.send({ type: "broadcast", event: "signal", payload });
+  }, []);
+
   const attachLocalStream = React.useCallback((stream: MediaStream) => {
     localStreamRef.current = stream;
-    if (localVideoRef.current) {
-      localVideoRef.current.srcObject = stream;
-    }
+    if (localVideoRef.current) localVideoRef.current.srcObject = stream;
   }, []);
+
+  const createPeer = React.useCallback(() => {
+    const peer = new RTCPeerConnection({
+      iceServers: process.env.NEXT_PUBLIC_TURN_SERVER_URL
+        ? [{ urls: process.env.NEXT_PUBLIC_TURN_SERVER_URL }]
+        : [{ urls: "stun:stun.l.google.com:19302" }],
+    });
+
+    peer.onicecandidate = ({ candidate }) => {
+      if (candidate) {
+        broadcast({ type: "ice", candidate: candidate.toJSON(), senderId, sentAt: new Date().toISOString() });
+      }
+    };
+
+    peer.ontrack = (event) => {
+      const [stream] = event.streams;
+      if (remoteVideoRef.current && stream) remoteVideoRef.current.srcObject = stream;
+      setStatus("active");
+    };
+
+    peer.onconnectionstatechange = () => {
+      if (peer.connectionState === "disconnected") setStatus("reconnecting");
+      if (peer.connectionState === "failed") setStatus("failed");
+      if (peer.connectionState === "connected") setStatus("active");
+    };
+
+    peerRef.current = peer;
+    return peer;
+  }, [broadcast, senderId]);
+
+  const startCall = React.useCallback(async (peer: RTCPeerConnection) => {
+    const stream = localStreamRef.current;
+    if (!stream) return;
+    stream.getTracks().forEach((track) => peer.addTrack(track, stream));
+
+    const offer = await peer.createOffer();
+    await peer.setLocalDescription(offer);
+    broadcast({ type: "offer", sdp: offer, senderId, sentAt: new Date().toISOString() });
+  }, [broadcast, senderId]);
 
   const startDeviceCheck = React.useCallback(async () => {
     setError(null);
@@ -46,6 +93,11 @@ export function VideoCallRoom({ roomId }: { roomId: string }) {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       attachLocalStream(stream);
       setStatus("waiting");
+
+      // If peer already exists (reconnect scenario), add tracks
+      if (peerRef.current) {
+        stream.getTracks().forEach((track) => peerRef.current!.addTrack(track, stream));
+      }
     } catch {
       setError("Camera or microphone permission was blocked. Enable permissions to join the consultation.");
       setStatus("failed");
@@ -57,10 +109,48 @@ export function VideoCallRoom({ roomId }: { roomId: string }) {
     const channel = supabase.channel(`call-room:${roomId}`, {
       config: { broadcast: { self: false } },
     });
+    channelRef.current = channel;
 
     channel
-      .on("broadcast", { event: "signal" }, ({ payload }: { payload: SignalMessage }) => {
+      .on("broadcast", { event: "signal" }, async ({ payload }: { payload: SignalMessage }) => {
         if (payload.senderId === senderId) return;
+        const peer = peerRef.current;
+
+        if (payload.type === "presence") {
+          if (payload.status === "waiting" && localStreamRef.current) {
+            // Remote peer joined — we become initiator and send offer
+            isInitiatorRef.current = true;
+            const p = createPeer();
+            await startCall(p);
+          }
+          if (payload.status === "active") {
+            setStatus((current) => (current === "waiting" ? "active" : current));
+          }
+          if (payload.status === "ended") {
+            setStatus("ended");
+          }
+        }
+
+        if (payload.type === "offer" && peer) {
+          await peer.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+          const stream = localStreamRef.current;
+          if (stream) stream.getTracks().forEach((track) => peer.addTrack(track, stream));
+          const answer = await peer.createAnswer();
+          await peer.setLocalDescription(answer);
+          broadcast({ type: "answer", sdp: answer, senderId, sentAt: new Date().toISOString() });
+        }
+
+        if (payload.type === "answer" && peer) {
+          await peer.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+        }
+
+        if (payload.type === "ice" && peer) {
+          try {
+            await peer.addIceCandidate(new RTCIceCandidate(payload.candidate));
+          } catch {
+            // ignore stale candidates
+          }
+        }
 
         if (payload.type === "chat") {
           setMessages((prev) => [
@@ -68,64 +158,28 @@ export function VideoCallRoom({ roomId }: { roomId: string }) {
             { id: `${payload.senderId}-${payload.sentAt}`, text: payload.text, mine: false, sentAt: payload.sentAt },
           ]);
         }
-
-        if (payload.type === "presence" && payload.status === "active") {
-          setStatus((current) => (current === "waiting" ? "active" : current));
-        }
       })
-      .subscribe((event) => {
+      .subscribe((event: string) => {
         if (event === "SUBSCRIBED") {
-          void channel.send({
-            type: "broadcast",
-            event: "signal",
-            payload: { type: "presence", status: "waiting", senderId, sentAt: new Date().toISOString() } satisfies SignalMessage,
-          });
+          createPeer();
+          broadcast({ type: "presence", status: "waiting", senderId, sentAt: new Date().toISOString() });
         }
       });
-
-    const peer = new RTCPeerConnection({
-      iceServers: process.env.NEXT_PUBLIC_TURN_SERVER_URL
-        ? [{ urls: process.env.NEXT_PUBLIC_TURN_SERVER_URL }]
-        : [{ urls: "stun:stun.l.google.com:19302" }],
-    });
-    peerRef.current = peer;
-
-    peer.ontrack = (event) => {
-      const [stream] = event.streams;
-      if (remoteVideoRef.current && stream) {
-        remoteVideoRef.current.srcObject = stream;
-      }
-      setStatus("active");
-    };
-
-    peer.onconnectionstatechange = () => {
-      if (peer.connectionState === "disconnected") setStatus("reconnecting");
-      if (peer.connectionState === "failed") setStatus("failed");
-      if (peer.connectionState === "connected") setStatus("active");
-    };
 
     return () => {
-      void channel.send({
-        type: "broadcast",
-        event: "signal",
-        payload: { type: "presence", status: "ended", senderId, sentAt: new Date().toISOString() } satisfies SignalMessage,
-      });
+      broadcast({ type: "presence", status: "ended", senderId, sentAt: new Date().toISOString() });
       void supabase.removeChannel(channel);
-      peer.close();
+      peerRef.current?.close();
       localStreamRef.current?.getTracks().forEach((track) => track.stop());
     };
-  }, [roomId, senderId]);
+  }, [roomId, senderId, broadcast, createPeer, startCall]);
 
   React.useEffect(() => {
-    localStreamRef.current?.getAudioTracks().forEach((track) => {
-      track.enabled = micEnabled;
-    });
+    localStreamRef.current?.getAudioTracks().forEach((track) => { track.enabled = micEnabled; });
   }, [micEnabled]);
 
   React.useEffect(() => {
-    localStreamRef.current?.getVideoTracks().forEach((track) => {
-      track.enabled = cameraEnabled;
-    });
+    localStreamRef.current?.getVideoTracks().forEach((track) => { track.enabled = cameraEnabled; });
   }, [cameraEnabled]);
 
   const shareScreen = async () => {
@@ -133,9 +187,7 @@ export function VideoCallRoom({ roomId }: { roomId: string }) {
       const screen = await navigator.mediaDevices.getDisplayMedia({ video: true });
       const screenTrack = screen.getVideoTracks()[0];
       const sender = peerRef.current?.getSenders().find((item) => item.track?.kind === "video");
-      if (sender && screenTrack) {
-        await sender.replaceTrack(screenTrack);
-      }
+      if (sender && screenTrack) await sender.replaceTrack(screenTrack);
     } catch {
       setError("Screen sharing could not start.");
     }
@@ -152,6 +204,7 @@ export function VideoCallRoom({ roomId }: { roomId: string }) {
   };
 
   const endCall = () => {
+    broadcast({ type: "presence", status: "ended", senderId, sentAt: new Date().toISOString() });
     setStatus("ended");
     localStreamRef.current?.getTracks().forEach((track) => track.stop());
   };
@@ -160,17 +213,10 @@ export function VideoCallRoom({ roomId }: { roomId: string }) {
     event.preventDefault();
     const text = chatInput.trim();
     if (!text) return;
-
     const sentAt = new Date().toISOString();
     setMessages((prev) => [...prev, { id: `${senderId}-${sentAt}`, text, mine: true, sentAt }]);
     setChatInput("");
-
-    const supabase = createClient();
-    await supabase.channel(`call-room:${roomId}`).send({
-      type: "broadcast",
-      event: "signal",
-      payload: { type: "chat", text, senderId, sentAt } satisfies SignalMessage,
-    });
+    broadcast({ type: "chat", text, senderId, sentAt });
   };
 
   return (

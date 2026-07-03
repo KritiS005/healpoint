@@ -64,7 +64,7 @@ const specialties = [
     description: "Heart health guidance and follow-up care.",
     availability: "Both",
     responseTime: "12 min",
-    fee: "$45",
+    fee: "₹399",
   },
   {
     icon: Brain,
@@ -72,7 +72,7 @@ const specialties = [
     description: "Neurological symptoms and specialist review.",
     availability: "Online",
     responseTime: "18 min",
-    fee: "$55",
+    fee: "₹499",
   },
   {
     icon: Sparkles,
@@ -80,7 +80,7 @@ const specialties = [
     description: "Skin concerns, rashes, and treatment planning.",
     availability: "Both",
     responseTime: "9 min",
-    fee: "$35",
+    fee: "₹299",
   },
   {
     icon: ShieldCheck,
@@ -88,7 +88,7 @@ const specialties = [
     description: "Bone, joint, and mobility consultations.",
     availability: "Offline",
     responseTime: "24 min",
-    fee: "$50",
+    fee: "₹449",
   },
   {
     icon: SmilePlus,
@@ -96,7 +96,7 @@ const specialties = [
     description: "Child health support for families.",
     availability: "Both",
     responseTime: "11 min",
-    fee: "$40",
+    fee: "₹349",
   },
   {
     icon: Brain,
@@ -104,7 +104,7 @@ const specialties = [
     description: "Confidential mental health consultations.",
     availability: "Online",
     responseTime: "20 min",
-    fee: "$60",
+    fee: "₹549",
   },
   {
     icon: SmilePlus,
@@ -112,7 +112,7 @@ const specialties = [
     description: "Dental care, pain review, and follow-ups.",
     availability: "Offline",
     responseTime: "28 min",
-    fee: "$30",
+    fee: "₹249",
   },
   {
     icon: Stethoscope,
@@ -120,7 +120,7 @@ const specialties = [
     description: "Everyday symptoms and primary care support.",
     availability: "Both",
     responseTime: "7 min",
-    fee: "$25",
+    fee: "₹199",
   },
 ];
 
@@ -150,7 +150,7 @@ const doctors = [
     experience: "14 years",
     languages: ["English", "Hindi", "Bengali"],
     rating: "4.9",
-    fee: "$65",
+    fee: "₹599",
     nextSlot: "Today, 5:30 PM",
     image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 320'%3E%3Crect width='320' height='320' fill='%231a1510'/%3E%3Ccircle cx='160' cy='118' r='58' fill='%23b89048' fill-opacity='0.2'/%3E%3Cpath d='M70 292c16-68 58-102 90-102s74 34 90 102' fill='%23b89048' fill-opacity='0.5'/%3E%3C/svg%3E",
   },
@@ -160,7 +160,7 @@ const doctors = [
     experience: "16 years",
     languages: ["Hindi", "English", "Urdu"],
     rating: "4.8",
-    fee: "$72",
+    fee: "₹649",
     nextSlot: "Tomorrow, 11:00 AM",
     image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 320'%3E%3Crect width='320' height='320' fill='%2314141c'/%3E%3Ccircle cx='160' cy='116' r='56' fill='%23d4af37' fill-opacity='0.25'/%3E%3Cpath d='M68 292c18-66 58-100 92-100s74 34 92 100' fill='%23d4af37' fill-opacity='0.45'/%3E%3C/svg%3E",
   },
@@ -170,7 +170,7 @@ const doctors = [
     experience: "12 years",
     languages: ["Tamil", "English", "Telugu", "Hindi"],
     rating: "4.9",
-    fee: "$48",
+    fee: "₹449",
     nextSlot: "Today, 7:00 PM",
     image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 320'%3E%3Crect width='320' height='320' fill='%23121512'/%3E%3Ccircle cx='160' cy='118' r='58' fill='%23f59e0b' fill-opacity='0.2'/%3E%3Cpath d='M72 292c18-68 58-102 88-102s70 34 88 102' fill='%23f59e0b' fill-opacity='0.45'/%3E%3C/svg%3E",
   },

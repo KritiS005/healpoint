@@ -1,5 +1,3 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-
 export type ProfileRole = "patient" | "doctor" | "admin";
 
 export interface ProfileRow {
@@ -81,9 +79,8 @@ export interface AiConversationRow {
 }
 
 // ---------------------------------------------------------------------------
-// MOCK DATA — used ONLY as a last-resort fallback. Kept intentionally for
-// debugging / offline development. Every place this is returned logs a
-// warning via warnFallback() so you can see it happening in real time.
+// MOCK DATA — static fallback arrays, safe to import in any Client Component.
+// Server-side Supabase fetching lives in mock-data.server.ts.
 // ---------------------------------------------------------------------------
 
 const profiles: ProfileRow[] = [
@@ -225,7 +222,7 @@ const payments: PaymentRow[] = [
   {
     id: "payment-001",
     appointment_id: "appointment-001",
-    amount: 45,
+    amount: 59900,
     status: "completed",
     provider_ref: "mock-card-001",
     created_at: "2026-06-28T12:00:00.000Z",
@@ -233,7 +230,7 @@ const payments: PaymentRow[] = [
   {
     id: "payment-002",
     appointment_id: "appointment-002",
-    amount: 18,
+    amount: 49900,
     status: "pending",
     provider_ref: "mock-card-002",
     created_at: "2026-06-29T09:00:00.000Z",
@@ -271,166 +268,4 @@ const aiConversations: AiConversationRow[] = [
   },
 ];
 
-// ---------------------------------------------------------------------------
-// Diagnostics helper — logs WHY a fallback happened, instead of swallowing it.
-// ---------------------------------------------------------------------------
-
-function warnFallback(table: string, reason: string) {
-  // eslint-disable-next-line no-console
-  console.warn(
-    `[mock-data] Falling back to MOCK data for "${table}". Reason: ${reason}`
-  );
-}
-
-async function getSupabaseRows<T>(table: string): Promise<T[] | null> {
-  let client;
-  try {
-    client = await createServerSupabaseClient();
-  } catch (err) {
-    warnFallback(table, `Failed to create Supabase server client — ${(err as Error).message}`);
-    return null;
-  }
-
-  const { data, error } = await client.from(table).select("*");
-
-  if (error) {
-    // Previously invisible: a real Supabase error (RLS denial, missing
-    // table, bad column, etc.) was silently swallowed and treated the
-    // same as "no rows". Now it's surfaced explicitly.
-    warnFallback(
-      table,
-      `Supabase query failed — ${error.message} (code: ${error.code ?? "unknown"}). ` +
-        `This is very often caused by a Row Level Security (RLS) policy blocking the SELECT.`
-    );
-    return null;
-  }
-
-  if (!data || data.length === 0) {
-    warnFallback(table, `Supabase query succeeded but returned 0 rows. Table may be empty.`);
-    return null;
-  }
-
-  return data as T[];
-}
-
-async function getCurrentUser() {
-  let client;
-  try {
-    client = await createServerSupabaseClient();
-  } catch (err) {
-    warnFallback("auth.getUser", `Failed to create Supabase server client — ${(err as Error).message}`);
-    return null;
-  }
-
-  const { data, error } = await client.auth.getUser();
-
-  if (error) {
-    warnFallback(
-      "auth.getUser",
-      `Auth session lookup failed — ${error.message}. ` +
-        `If this happens on first load, make sure middleware.ts is refreshing the ` +
-        `Supabase session cookie on every request (see note below).`
-    );
-    return null;
-  }
-
-  if (!data.user) {
-    warnFallback("auth.getUser", "No authenticated user found for this request (no active session).");
-    return null;
-  }
-
-  return data.user;
-}
-
-// ---------------------------------------------------------------------------
-// Public getters
-// ---------------------------------------------------------------------------
-
-export async function getProfiles(): Promise<ProfileRow[]> {
-  const rows = await getSupabaseRows<ProfileRow>("profiles");
-  return rows ?? profiles;
-}
-
-export async function getPatientProfile(): Promise<ProfileRow> {
-  const user = await getCurrentUser();
-
-  if (!user) {
-    warnFallback("profiles (current patient)", "No authenticated user — returning mock profile.");
-    return profiles[0];
-  }
-
-  let client;
-  try {
-    client = await createServerSupabaseClient();
-  } catch (err) {
-    warnFallback("profiles (current patient)", `Failed to create Supabase server client — ${(err as Error).message}`);
-    return profiles[0];
-  }
-
-  const { data, error } = await client
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-
-  if (error) {
-    warnFallback(
-      "profiles (current patient)",
-      `Query for id="${user.id}" failed — ${error.message} (code: ${error.code ?? "unknown"}). ` +
-        `Check that a row exists in "profiles" whose "id" column exactly matches the ` +
-        `Supabase Auth user id, and that RLS allows the user to select their own row.`
-    );
-    return profiles[0];
-  }
-
-  if (!data) {
-    warnFallback(
-      "profiles (current patient)",
-      `No profile row found with id="${user.id}". The profiles table likely has no ` +
-        `matching row for this auth user — check your signup/profile-creation flow.`
-    );
-    return profiles[0];
-  }
-
-  return data as ProfileRow;
-}
-
-export async function getDoctors(): Promise<DoctorRow[]> {
-  const rows = await getSupabaseRows<DoctorRow>("doctors");
-  return rows ?? doctors;
-}
-
-export async function getPatients(): Promise<PatientRow[]> {
-  const rows = await getSupabaseRows<PatientRow>("patients");
-  return rows ?? patients;
-}
-
-export async function getAppointments(): Promise<AppointmentRow[]> {
-  const rows = await getSupabaseRows<AppointmentRow>("appointments");
-  return rows ?? appointments;
-}
-
-export async function getMedicalRecords(): Promise<MedicalRecordRow[]> {
-  const rows = await getSupabaseRows<MedicalRecordRow>("medical_records");
-  return rows ?? medicalRecords;
-}
-
-export async function getPrescriptions(): Promise<PrescriptionRow[]> {
-  const rows = await getSupabaseRows<PrescriptionRow>("prescriptions");
-  return rows ?? prescriptions;
-}
-
-export async function getPayments(): Promise<PaymentRow[]> {
-  const rows = await getSupabaseRows<PaymentRow>("payments");
-  return rows ?? payments;
-}
-
-export async function getNotifications(): Promise<NotificationRow[]> {
-  const rows = await getSupabaseRows<NotificationRow>("notifications");
-  return rows ?? notifications;
-}
-
-export async function getAiConversations(): Promise<AiConversationRow[]> {
-  const rows = await getSupabaseRows<AiConversationRow>("ai_conversations");
-  return rows ?? aiConversations;
-}
+export { profiles, doctors, patients, appointments, medicalRecords, prescriptions, payments, notifications, aiConversations };

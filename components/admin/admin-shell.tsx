@@ -71,12 +71,12 @@ function AdminStat({
   icon: typeof Activity;
 }) {
   return (
-    <Card className="border-border/70 bg-white/85 shadow-sm backdrop-blur">
+    <Card className="bg-white/60 backdrop-blur-lg border border-white/20 shadow-sm rounded-3xl">
       <CardContent className="flex items-start justify-between gap-4 p-5">
         <div>
-          <p className="text-sm text-muted-foreground">{title}</p>
-          <p className="mt-2 text-2xl font-semibold text-foreground">{value}</p>
-          <p className="mt-1 text-sm text-muted-foreground">{hint}</p>
+          <p className="text-sm text-slate-600">{title}</p>
+          <p className="mt-2 text-2xl font-semibold text-slate-900">{value}</p>
+          <p className="mt-1 text-sm text-slate-500">{hint}</p>
         </div>
         <div className="rounded-2xl bg-primary/10 p-3 text-primary">
           <Icon className="size-5" />
@@ -97,17 +97,17 @@ export function AdminShell({ verifications = defaultVerifications, activities = 
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(31,111,235,0.08),_transparent_32%),linear-gradient(135deg,_#f8fbff_0%,_#f7f8ff_100%)] px-4 py-6 sm:px-6 lg:px-8">
+    <div className="min-h-screen px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-7xl flex-col gap-6 lg:flex-row">
         <aside className="w-full lg:w-72 lg:shrink-0">
-          <div className="rounded-[28px] border border-border/70 bg-white/85 p-5 shadow-[0_20px_60px_rgba(31,111,235,0.08)] backdrop-blur">
+          <div className="bg-white/40 backdrop-blur-md border border-white/20 shadow-sm rounded-3xl p-5">
             <div className="flex items-center gap-3">
               <div className="grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary">
                 <ShieldCheck className="size-6" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">HealPoint</p>
-                <p className="text-sm text-muted-foreground">Admin workspace</p>
+                <p className="text-sm font-semibold text-slate-900">HealPoint</p>
+                <p className="text-sm text-slate-600">Admin workspace</p>
               </div>
             </div>
 
@@ -140,18 +140,18 @@ export function AdminShell({ verifications = defaultVerifications, activities = 
             <button
               type="button"
               onClick={handleLogout}
-              className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl border border-border/70 px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
+              className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl border border-white/30 px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-white/50 hover:text-slate-900"
             >
               <LogOut className="size-4" />
               Logout
             </button>
 
-            <div className="mt-6 rounded-3xl border border-primary/10 bg-primary/5 p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <div className="mt-6 rounded-3xl border border-primary/10 bg-white/50 p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
                 <Sparkles className="size-4 text-primary" />
                 Platform oversight
               </div>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              <p className="mt-2 text-sm leading-6 text-slate-600">
                 Review doctor credentials, monitor engagement, and keep the healthcare experience trustworthy.
               </p>
             </div>
@@ -159,12 +159,12 @@ export function AdminShell({ verifications = defaultVerifications, activities = 
         </aside>
 
         <main className="flex-1 space-y-6">
-          <header id="overview" className="rounded-[28px] border border-border/70 bg-white/85 p-5 shadow-[0_20px_60px_rgba(31,111,235,0.08)] backdrop-blur sm:p-6">
+          <header id="overview" className="bg-white/60 backdrop-blur-lg border border-white/20 shadow-sm rounded-3xl p-5 sm:p-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Admin Panel</p>
-                <h1 className="mt-2 text-3xl font-semibold text-foreground">Platform overview and doctor verification</h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                <h1 className="mt-2 text-3xl font-semibold text-slate-900">Platform overview and doctor verification</h1>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
                   Review pending doctor applications, monitor key platform activity, and keep the experience secure and trustworthy.
                 </p>
               </div>
@@ -182,26 +182,26 @@ export function AdminShell({ verifications = defaultVerifications, activities = 
           </section>
 
           <section id="doctors" className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-            <Card className="border-border/70 bg-white/85 shadow-sm backdrop-blur">
+            <Card className="bg-white/60 backdrop-blur-lg border border-white/20 shadow-sm rounded-3xl">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Doctor verification queue</CardTitle>
-                    <CardDescription>Pending and approved doctor applications.</CardDescription>
+                    <CardTitle className="text-slate-900">Doctor verification queue</CardTitle>
+                    <CardDescription className="text-slate-600">Pending and approved doctor applications.</CardDescription>
                   </div>
                   <Badge variant="neutral">Mock data</Badge>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
                 {verifications.map((verification) => (
-                  <div key={verification.email} className="flex items-center justify-between rounded-2xl border border-border/70 bg-background/70 p-4">
+                  <div key={verification.email} className="flex items-center justify-between rounded-2xl border border-white/30 bg-white/50 p-4">
                     <div>
-                      <p className="font-semibold text-foreground">{verification.name}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">{verification.specialty} · {verification.email}</p>
+                      <p className="font-semibold text-slate-900">{verification.name}</p>
+                      <p className="mt-1 text-sm text-slate-600">{verification.specialty} · {verification.email}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant={verification.status === "Approved" ? "emerald" : "warning"}>{verification.status}</Badge>
-                      <button type="button" className="rounded-full border border-border/70 p-2 text-muted-foreground">
+                      <button type="button" className="rounded-full border border-white/30 p-2 text-slate-500">
                         <ArrowUpRight className="size-4" />
                       </button>
                     </div>
@@ -210,27 +210,27 @@ export function AdminShell({ verifications = defaultVerifications, activities = 
               </CardContent>
             </Card>
 
-            <Card id="users" className="border-border/70 bg-white/85 shadow-sm backdrop-blur">
+            <Card id="users" className="bg-white/60 backdrop-blur-lg border border-white/20 shadow-sm rounded-3xl">
               <CardHeader>
-                <CardTitle>Recent admin activity</CardTitle>
-                <CardDescription>Recent platform events and moderation updates.</CardDescription>
+                <CardTitle className="text-slate-900">Recent admin activity</CardTitle>
+                <CardDescription className="text-slate-600">Recent platform events and moderation updates.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {activities.map((activity) => (
-                  <div key={activity.title} className="rounded-2xl border border-border/70 bg-background/70 p-4">
-                    <p className="font-semibold text-foreground">{activity.title}</p>
-                    <p className="mt-1 text-sm leading-6 text-muted-foreground">{activity.detail}</p>
+                  <div key={activity.title} className="rounded-2xl border border-white/30 bg-white/50 p-4">
+                    <p className="font-semibold text-slate-900">{activity.title}</p>
+                    <p className="mt-1 text-sm leading-6 text-slate-600">{activity.detail}</p>
                     <p className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary">{activity.time}</p>
                   </div>
                 ))}
               </CardContent>
             </Card>
           </section>
-          <section id="reports" className="rounded-[28px] border border-border/70 bg-white/85 p-5 shadow-sm backdrop-blur">
+          <section id="reports" className="bg-white/60 backdrop-blur-lg border border-white/20 shadow-sm rounded-3xl p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-xl font-semibold text-foreground">Moderation queue</h2>
-                <p className="mt-1 text-sm text-muted-foreground">Review reports and trust signals from a single view.</p>
+                <h2 className="text-xl font-semibold text-slate-900">Moderation queue</h2>
+                <p className="mt-1 text-sm text-slate-600">Review reports and trust signals from a single view.</p>
               </div>
               <Link href="/admin" className={buttonVariants({ variant: "default", size: "sm" })}>
                 Refresh overview

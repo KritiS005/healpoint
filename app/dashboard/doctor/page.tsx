@@ -1,123 +1,116 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import * as React from "react";
-import { Suspense } from "react";
+import { DoctorDashboardShell } from "@/components/dashboard/doctor-dashboard-shell";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { createClient } from "@/lib/supabase/client";
+export default async function DoctorDashboardPage() {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-export default function SignUpPage() {
+  if (!user) redirect("/auth/login?redirectTo=/dashboard/doctor");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, full_name")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profile?.role === "patient") redirect("/dashboard/patient");
+  if (profile?.role === "admin") redirect("/admin");
+  if (profile?.role !== "doctor") redirect("/dashboard");
+
+  const { data: doctorRow } = await supabase
+    .from("doctors")
+    .select("id")
+    .eq("profile_id", user.id)
+    .maybeSingle();
+
+  const doctorId = doctorRow?.id ?? null;
+
+  const [appointmentsResult, patientsResult, prescriptionsResult] = await Promise.all([
+    doctorId
+      ? supabase
+          .from("appointments")
+          .select("id, scheduled_at, status, notes, patients(profiles(full_name))")
+          .eq("doctor_id", doctorId)
+          .is("deleted_at", null)
+          .order("scheduled_at", { ascending: true })
+          .limit(10)
+      : Promise.resolve({ data: [], error: null }),
+    doctorId
+      ? supabase
+          .from("appointments")
+          .select("patients(id, profile_id, profiles(full_name))")
+          .eq("doctor_id", doctorId)
+          .is("deleted_at", null)
+          .limit(20)
+      : Promise.resolve({ data: [], error: null }),
+    doctorId
+      ? supabase
+          .from("prescriptions")
+          .select("id, content, issued_at, patients(profiles(full_name))")
+          .eq("doctor_id", doctorId)
+          .order("issued_at", { ascending: false })
+          .limit(10)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  const appointments = (appointmentsResult.data ?? []).map((a) => {
+    const patientProfile = Array.isArray((a as any).patients)
+      ? (a as any).patients[0]?.profiles
+      : (a as any).patients?.profiles;
+    return {
+      id: a.id,
+      patient: patientProfile?.full_name ?? "Patient",
+      time: new Date(a.scheduled_at).toLocaleString("en", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      }),
+      note: a.notes ?? "",
+      status: (a.status === "confirmed" ? "Confirmed" : "Pending") as "Confirmed" | "Pending",
+    };
+  });
+
+  // Deduplicate patients by profile_id
+  const seenPatients = new Set<string>();
+  const patients = (patientsResult.data ?? [])
+    .flatMap((a) => {
+      const p = Array.isArray((a as any).patients) ? (a as any).patients[0] : (a as any).patients;
+      return p ? [p] : [];
+    })
+    .filter((p) => {
+      if (seenPatients.has(p.profile_id)) return false;
+      seenPatients.add(p.profile_id);
+      return true;
+    })
+    .map((p) => ({
+      id: p.id as string,
+      name: p.profiles?.full_name ?? "Patient",
+    }));
+
+  const drafts = (prescriptionsResult.data ?? []).map((rx) => {
+    const patientProfile = Array.isArray((rx as any).patients)
+      ? (rx as any).patients[0]?.profiles
+      : (rx as any).patients?.profiles;
+    return {
+      id: rx.id,
+      title: `Prescription — ${new Date(rx.issued_at).toLocaleDateString("en", { month: "short", day: "numeric" })}`,
+      patient: patientProfile?.full_name ?? "Patient",
+      summary: rx.content?.slice(0, 120) ?? "",
+    };
+  });
+
   return (
-    <Suspense fallback={<div className="mx-auto flex min-h-screen items-center justify-center px-6 py-16 text-sm text-muted-foreground">Loading…</div>}>
-      <SignUpPageContent />
-    </Suspense>
-  );
-}
-
-function SignUpPageContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirectTo") ?? "/dashboard";
-  const [fullName, setFullName] = React.useState("");
-  const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
-  const [role, setRole] = React.useState("patient"); // New state for role
-  const [error, setError] = React.useState<string | null>(null);
-  const [loading, setLoading] = React.useState(false);
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    const supabase = createClient();
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/verify?redirectTo=${encodeURIComponent(redirectTo)}`,
-        data: { 
-          full_name: fullName,
-          role: role // Added role here
-        },
-      },
-    });
-
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-      return;
-    }
-
-    if (data.user?.identities?.length === 0) {
-      setError("A user with this email already exists. Please log in instead.");
-      setLoading(false);
-      return;
-    }
-
-    router.push(`/auth/verify?email=${encodeURIComponent(email)}&redirectTo=${encodeURIComponent(redirectTo)}`);
-  }
-
-  return (
-    <main className="mx-auto flex min-h-screen max-w-6xl items-center justify-center px-6 py-16">
-      <div className="grid w-full max-w-5xl gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-        <div className="space-y-6">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-3 py-1 text-sm text-muted-foreground backdrop-blur">
-            <span className="size-2 rounded-full bg-emerald-400" />
-            Secure onboarding for patients, doctors, and admins
-          </div>
-          <div className="space-y-4">
-            <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">Create your HealPoint account</h1>
-            <p className="max-w-xl text-lg leading-8 text-muted-foreground">
-              Join the platform for AI-assisted care, booking, and health insights with a modern, secure sign-up flow.
-            </p>
-          </div>
-        </div>
-
-        <Card className="border-white/10 bg-background/70 p-2 shadow-[0_20px_80px_rgba(15,23,42,0.35)] backdrop-blur-2xl">
-          <CardHeader className="px-6 pt-6">
-            <CardTitle className="text-2xl text-white">Sign up</CardTitle>
-            <CardDescription>Start with your email and a secure password.</CardDescription>
-          </CardHeader>
-          <CardContent className="px-6 pb-6">
-            <form className="grid gap-4" onSubmit={handleSubmit}>
-              <Input label="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
-              <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-              <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
-              
-              {/* Role selection using classes that match your Input component */}
-              <div className="grid gap-2">
-                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-white">
-                  I am a...
-                </label>
-                <select 
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                >
-                  <option value="patient">Patient</option>
-                  <option value="doctor">Doctor</option>
-                </select>
-              </div>
-
-              {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
-              <Button type="submit" className="mt-2" disabled={loading}>
-                {loading ? "Creating account..." : "Create account"}
-              </Button>
-            </form>
-            <p className="mt-6 text-sm text-muted-foreground">
-              Already have an account?{' '}
-              <Link href={`/auth/login?redirectTo=${encodeURIComponent(redirectTo)}`} className="font-semibold text-primary hover:underline">
-                Sign in
-              </Link>
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    </main>
+    <DoctorDashboardShell
+      doctorName={profile?.full_name?.split(" ").slice(-1)[0] ?? "Doctor"}
+      appointments={appointments}
+      patients={patients}
+      drafts={drafts}
+    />
   );
 }

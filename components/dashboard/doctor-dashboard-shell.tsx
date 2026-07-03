@@ -1,66 +1,72 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import * as React from "react";
 import {
-  Activity, BellRing, CalendarDays, ChevronRight, ClipboardPlus, 
-  Clock3, FileStack, LogOut, Search, ShieldCheck, Sparkles, 
-  Stethoscope, Users, Wallet,
+  Activity,
+  CalendarDays,
+  ChevronRight,
+  ClipboardPlus,
+  FileStack,
+  Home,
+  LogOut,
+  MessageCircle,
+  Sparkles,
+  Stethoscope,
+  Users,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
-// --- Types ---
 export type AppointmentItem = {
+  id: string;
   patient: string;
   time: string;
-  type: string;
   note: string;
   status: "Confirmed" | "Pending";
 };
+export type PatientItem = { id: string; name: string };
+export type PrescriptionDraft = { id: string; title: string; patient: string; summary: string };
 
-export type PatientItem = {
-  name: string;
-  condition: string;
-  nextVisit: string;
-};
-
-export type PrescriptionDraft = {
-  title: string;
-  patient: string;
-  summary: string;
-};
-
-type DoctorDashboardShellProps = {
+type Props = {
   doctorName: string;
   appointments: AppointmentItem[];
   patients: PatientItem[];
-  drafts: PrescriptionDraft[]; // Required as per your page.tsx logic
+  drafts: PrescriptionDraft[];
 };
 
 const navItems = [
-  { label: "Overview", icon: Activity, href: "#overview" },
-  { label: "Calendar", icon: CalendarDays, href: "#schedule" },
-  { label: "Patients", icon: Users, href: "#patients" },
-  { label: "Prescriptions", icon: ClipboardPlus, href: "#prescriptions" },
-  { label: "Availability", icon: Wallet, href: "#alerts" },
+  { label: "Overview", icon: Activity, href: "/dashboard/doctor" },
+  { label: "Schedule", icon: CalendarDays, href: "/dashboard/doctor/appointments" },
+  { label: "Patients", icon: Users, href: "/dashboard/doctor/patients" },
+  { label: "Prescriptions", icon: ClipboardPlus, href: "/dashboard/doctor/prescriptions" },
+  { label: "AI Assistant", icon: MessageCircle, href: "/dashboard/ai" },
 ];
 
-function DashboardStat({ title, value, hint, icon: Icon }: { title: string; value: string; hint: string; icon: any }) {
+function StatCard({
+  title,
+  value,
+  hint,
+  icon: Icon,
+}: {
+  title: string;
+  value: string;
+  hint: string;
+  icon: React.ComponentType<{ className?: string }>;
+}) {
   return (
-    <Card className="border-border/70 bg-white/85 shadow-sm backdrop-blur">
+    <Card className="bg-white/60 backdrop-blur-lg border border-white/20 shadow-sm rounded-3xl">
       <CardContent className="flex items-start justify-between gap-4 p-5">
         <div>
-          <p className="text-sm text-muted-foreground">{title}</p>
-          <p className="mt-2 text-2xl font-semibold text-foreground">{value}</p>
-          <p className="mt-1 text-sm text-muted-foreground">{hint}</p>
+          <p className="text-sm text-slate-600">{title}</p>
+          <p className="mt-2 text-2xl font-semibold text-slate-900">{value}</p>
+          <p className="mt-1 text-sm text-slate-500">{hint}</p>
         </div>
-        <div className="rounded-2xl bg-primary/10 p-3 text-primary">
+        <div className="rounded-2xl bg-secondary/10 p-3 text-secondary-foreground">
           <Icon className="size-5" />
         </div>
       </CardContent>
@@ -68,9 +74,9 @@ function DashboardStat({ title, value, hint, icon: Icon }: { title: string; valu
   );
 }
 
-export function DoctorDashboardShell({ doctorName, appointments, patients, drafts }: DoctorDashboardShellProps) {
+export function DoctorDashboardShell({ doctorName, appointments, patients, drafts }: Props) {
   const router = useRouter();
-  const [activeSection, setActiveSection] = React.useState("overview");
+  const pathname = usePathname();
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -79,26 +85,194 @@ export function DoctorDashboardShell({ doctorName, appointments, patients, draft
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(16,196,196,0.1),_transparent_34%),linear-gradient(135deg,_#f8fdfd_0%,_#f4fbff_100%)] px-4 py-6 sm:px-6 lg:px-8">
+    <div className="px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-7xl flex-col gap-6 lg:flex-row">
-        {/* Sidebar remains the same */}
         <aside className="w-full lg:w-72 lg:shrink-0">
-          {/* ... (Sidebar UI) ... */}
+          <div className="bg-white/40 backdrop-blur-lg border border-white/20 shadow-sm rounded-3xl p-5">
+            <div className="flex items-center gap-3">
+              <div className="grid size-12 place-items-center rounded-2xl bg-secondary/10 text-secondary-foreground">
+                <Stethoscope className="size-6" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">HealPoint</p>
+                <p className="text-sm text-muted-foreground">Doctor workspace</p>
+              </div>
+            </div>
+
+            <nav className="mt-6 space-y-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const active = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-sm font-medium transition-colors",
+                      active ? "dash-nav-active" : "dash-nav-idle",
+                    )}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Icon className="size-4" />
+                      {item.label}
+                    </span>
+                    <ChevronRight className="size-4 opacity-50" />
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <div className="mt-4 flex gap-2">
+              <Link
+                href="/"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-border/70 px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
+              >
+                <Home className="size-3.5" /> Home
+              </Link>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-border/70 px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
+              >
+                <LogOut className="size-3.5" /> Logout
+              </button>
+            </div>
+          </div>
         </aside>
 
         <main className="flex-1 space-y-6">
-          <header className="rounded-[28px] border border-border/70 bg-white/85 p-6 shadow-[0_20px_60px_rgba(16,196,196,0.1)] backdrop-blur">
-            <h1 className="text-3xl font-semibold text-foreground">Good morning, {doctorName}</h1>
+          <header className="bg-white/60 backdrop-blur-lg border border-white/20 shadow-sm rounded-3xl p-6">
+            <h1 className="text-3xl font-semibold text-slate-900">
+              Good morning, Dr. {doctorName}
+            </h1>
+            <p className="mt-1 text-sm text-slate-600">
+              Here&apos;s your clinical overview for today.
+            </p>
           </header>
 
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <DashboardStat title="Appointments" value={appointments.length.toString()} hint="Scheduled" icon={CalendarDays} />
-            <DashboardStat title="Active patients" value={patients.length.toString()} hint="In queue" icon={Users} />
-            <DashboardStat title="Pending notes" value={drafts.length.toString()} hint="Ready for review" icon={FileStack} />
-            <DashboardStat title="AI assistance" value={drafts.length.toString()} hint="Summaries prepared" icon={Sparkles} />
+            <StatCard
+              title="Appointments"
+              value={appointments.length.toString()}
+              hint="Scheduled"
+              icon={CalendarDays}
+            />
+            <StatCard
+              title="Active patients"
+              value={patients.length.toString()}
+              hint="In queue"
+              icon={Users}
+            />
+            <StatCard
+              title="Pending notes"
+              value={drafts.length.toString()}
+              hint="Ready for review"
+              icon={FileStack}
+            />
+            <StatCard
+              title="AI summaries"
+              value={drafts.length.toString()}
+              hint="Prepared"
+              icon={Sparkles}
+            />
           </section>
 
-          {/* ... rest of the section grids mapping appointments, patients, and drafts ... */}
+          <section className="grid gap-6 xl:grid-cols-[1.3fr_0.9fr]">
+            <Card className="bg-white/60 backdrop-blur-lg border border-white/20 shadow-sm rounded-3xl">
+              <CardHeader>
+                <CardTitle className="text-slate-900">Today&apos;s schedule</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {appointments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No appointments found.</p>
+                ) : (
+                  appointments.map((a) => (
+                    <div
+                      key={a.id}
+                      className="rounded-2xl border border-white/30 bg-white/50 p-4"
+                    >
+                      <p className="font-semibold text-slate-900">{a.patient}</p>
+                      <p className="text-sm text-slate-600">{a.time}</p>
+                      {a.note && (
+                        <p className="mt-1 line-clamp-1 text-xs text-slate-500">{a.note}</p>
+                      )}
+                      <Badge
+                        className="mt-2"
+                        variant={a.status === "Confirmed" ? "success" : "neutral"}
+                      >
+                        {a.status}
+                      </Badge>
+                    </div>
+                  ))
+                )}
+                <Link
+                  href="/dashboard/doctor/appointments"
+                  className="block text-center text-sm font-medium text-primary hover:underline"
+                >
+                  View full schedule →
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/60 backdrop-blur-lg border border-white/20 shadow-sm rounded-3xl">
+              <CardHeader>
+                <CardTitle className="text-slate-900">Recent patients</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {patients.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No patients found.</p>
+                ) : (
+                  patients.slice(0, 5).map((p) => (
+                    <div
+                      key={p.id}
+                      className="flex items-center gap-3 rounded-2xl border border-white/30 bg-white/50 px-4 py-3"
+                    >
+                      <div className="grid size-8 shrink-0 place-items-center rounded-full bg-secondary/10 text-xs font-semibold text-secondary-foreground">
+                        {p.name.charAt(0)}
+                      </div>
+                      <p className="text-sm font-medium text-slate-900">{p.name}</p>
+                    </div>
+                  ))
+                )}
+                <Link
+                  href="/dashboard/doctor/patients"
+                  className="block text-center text-sm font-medium text-primary hover:underline"
+                >
+                  View all patients →
+                </Link>
+              </CardContent>
+            </Card>
+          </section>
+
+          <Card className="bg-white/60 backdrop-blur-lg border border-white/20 shadow-sm rounded-3xl">
+            <CardHeader>
+              <CardTitle className="text-slate-900">Recent prescriptions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {drafts.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No prescriptions found.</p>
+              ) : (
+                drafts.map((d) => (
+                  <div
+                    key={d.id}
+                    className="rounded-2xl border border-white/30 bg-white/50 p-4"
+                  >
+                    <p className="font-semibold text-slate-900">{d.title}</p>
+                    <p className="text-sm text-slate-600">{d.patient}</p>
+                    {d.summary && (
+                      <p className="mt-1 line-clamp-2 text-sm text-slate-600">{d.summary}</p>
+                    )}
+                  </div>
+                ))
+              )}
+              <Link
+                href="/dashboard/doctor/prescriptions"
+                className="block text-center text-sm font-medium text-primary hover:underline"
+              >
+                View all prescriptions →
+              </Link>
+            </CardContent>
+          </Card>
         </main>
       </div>
     </div>

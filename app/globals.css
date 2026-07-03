@@ -357,6 +357,45 @@
   .focus-ring {
     @apply focus-visible:ring-4 focus-visible:ring-ring/20 focus-visible:outline-none;
   }
+
+  /* ── Dashboard shell shared tokens ── */
+  .dash-bg-patient {
+    background:
+      radial-gradient(circle at top left, rgba(31, 111, 235, 0.09), transparent 32%),
+      linear-gradient(135deg, #f8fbff 0%, #f4f8ff 100%);
+  }
+
+  .dash-bg-doctor {
+    background:
+      radial-gradient(circle at top left, rgba(16, 196, 196, 0.10), transparent 34%),
+      linear-gradient(135deg, #f8fdfd 0%, #f4fbff 100%);
+  }
+
+  .dash-bg-ai {
+    background:
+      radial-gradient(circle at top left, rgba(16, 196, 196, 0.08), transparent 34%),
+      linear-gradient(135deg, #f8fdfd 0%, #f4fbff 100%);
+  }
+
+  .dash-card {
+    @apply rounded-[28px] border border-border/70 bg-white/85 shadow-[0_20px_60px_rgba(31,111,235,0.09)] backdrop-blur;
+  }
+
+  .dash-card-doctor {
+    @apply rounded-[28px] border border-border/70 bg-white/85 shadow-[0_20px_60px_rgba(16,196,196,0.10)] backdrop-blur;
+  }
+
+  .dash-stat-card {
+    @apply border-border/70 bg-white/80 shadow-sm backdrop-blur;
+  }
+
+  .dash-nav-active {
+    @apply bg-primary text-primary-foreground shadow-sm;
+  }
+
+  .dash-nav-idle {
+    @apply text-muted-foreground hover:bg-muted/70 hover:text-foreground;
+  }
 }
 
 @layer utilities {
