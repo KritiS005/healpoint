@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
+import { DOCTOR_SPECIALTIES } from "@/lib/constants/specialties";
 
 export default function SignUpPage() {
   return (
@@ -17,19 +18,6 @@ export default function SignUpPage() {
     </Suspense>
   );
 }
-
-const SPECIALTIES = [
-  "General Practice",
-  "Cardiology",
-  "Neurology",
-  "Pediatrics",
-  "Dermatology",
-  "Orthopedics",
-  "Gynecology",
-  "Psychiatry",
-  "ENT",
-  "Ophthalmology",
-];
 
 function SignUpPageContent() {
   const router = useRouter();
@@ -42,7 +30,7 @@ function SignUpPageContent() {
   const [role, setRole] = React.useState("patient");
 
   // Doctor-specific fields
-  const [specialty, setSpecialty] = React.useState(SPECIALTIES[0]);
+  const [specialty, setSpecialty] = React.useState<string>(DOCTOR_SPECIALTIES[0]);
   const [bio, setBio] = React.useState("");
   const [consultationFee, setConsultationFee] = React.useState("");
 
@@ -137,7 +125,7 @@ function SignUpPageContent() {
                       value={specialty}
                       onChange={(e) => setSpecialty(e.target.value)}
                     >
-                      {SPECIALTIES.map((s) => (
+                      {DOCTOR_SPECIALTIES.map((s) => (
                         <option key={s} value={s}>{s}</option>
                       ))}
                     </select>

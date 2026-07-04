@@ -21,11 +21,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { DOCTOR_SPECIALTIES } from "@/lib/constants/specialties";
 
-const SPECIALTIES = [
-  "General Practice", "Cardiology", "Neurology", "Pediatrics",
-  "Dermatology", "Orthopedics", "Gynecology", "Psychiatry", "ENT", "Ophthalmology",
-];
+// SPECIALTIES is now imported from the centralized list — no local duplicate
 
 export type AppointmentItem = {
   id: string;
@@ -214,7 +212,7 @@ export function DoctorDashboardShell({ doctorName, appointments, patients, draft
                   value={specialty}
                   onChange={(e) => setSpecialty(e.target.value)}
                 >
-                  {SPECIALTIES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  {DOCTOR_SPECIALTIES.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               <div className="grid gap-2">

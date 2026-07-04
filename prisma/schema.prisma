@@ -97,7 +97,6 @@ model Doctor {
   profileId       String        @unique @map("profile_id") @db.Uuid
   specialty       String
   bio             String?
-  licenseNumber   String        @unique @map("license_number")
   verified        Boolean       @default(false)
   rating          Decimal       @default(0.0) @db.Decimal(2, 1)
   consultationFee Int           @map("consultation_fee")
