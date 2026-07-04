@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 export type BookingDoctor = {
   id: string;
   fullName: string;
+  avatarUrl: string | null;
   specialty: string;
   bio: string;
   rating: number;
@@ -46,14 +47,13 @@ type Slot = {
 
 type BookingShellProps = {
   doctors: BookingDoctor[];
+  specialties: string[];
   headerCta: React.ReactNode;
 };
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-const SPECIALTIES = ["All", "Cardiology", "Neurology", "Pediatrics", "General"] as const;
 
 /** Generate the next 4 available slots starting from the next full hour. */
 function generateSlots(doctorId: string): Slot[] {
@@ -89,13 +89,12 @@ const STEPS = ["Select doctor", "Choose time & type", "Confirm booking"] as cons
 // Component
 // ---------------------------------------------------------------------------
 
-export function BookingShell({ doctors, headerCta }: BookingShellProps) {
+export function BookingShell({ doctors, specialties, headerCta }: BookingShellProps) {
   const router = useRouter();
 
   // Wizard state
   const [activeStep, setActiveStep] = React.useState(0);
-  const [selectedSpecialty, setSelectedSpecialty] =
-    React.useState<(typeof SPECIALTIES)[number]>("All");
+  const [selectedSpecialty, setSelectedSpecialty] = React.useState("All");
   const [selectedDoctorId, setSelectedDoctorId] = React.useState<string>("");
   const [selectedSlotId, setSelectedSlotId] = React.useState<string>("");
   const [appointmentType, setAppointmentType] = React.useState<AppointmentType>("video_call");
@@ -116,10 +115,7 @@ export function BookingShell({ doctors, headerCta }: BookingShellProps) {
 
   // Derived
   const filteredDoctors = React.useMemo(
-    () =>
-      selectedSpecialty === "All"
-        ? doctors
-        : doctors.filter((d) => d.specialty === selectedSpecialty),
+    () => selectedSpecialty === "All" ? doctors : doctors.filter((d) => d.specialty === selectedSpecialty),
     [doctors, selectedSpecialty],
   );
 
@@ -240,9 +236,9 @@ export function BookingShell({ doctors, headerCta }: BookingShellProps) {
               {/* ── Step 0: Select doctor ── */}
               {activeStep === 0 && (
                 <div className="space-y-4">
-                  {/* Specialty filter */}
+                  {/* Specialty filter — dynamic from real DB data */}
                   <div className="flex flex-wrap gap-2">
-                    {SPECIALTIES.map((s) => (
+                    {specialties.map((s) => (
                       <button
                         key={s}
                         type="button"
@@ -261,7 +257,7 @@ export function BookingShell({ doctors, headerCta }: BookingShellProps) {
 
                   {/* Doctor list */}
                   {filteredDoctors.length === 0 ? (
-                    <p className="text-sm text-slate-500">No verified doctors in this specialty yet.</p>
+                    <p className="text-sm text-slate-500">No doctors available in this specialty yet.</p>
                   ) : (
                     <div className="grid gap-3">
                       {filteredDoctors.map((doctor) => (

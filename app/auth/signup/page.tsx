@@ -18,14 +18,34 @@ export default function SignUpPage() {
   );
 }
 
+const SPECIALTIES = [
+  "General Practice",
+  "Cardiology",
+  "Neurology",
+  "Pediatrics",
+  "Dermatology",
+  "Orthopedics",
+  "Gynecology",
+  "Psychiatry",
+  "ENT",
+  "Ophthalmology",
+];
+
 function SignUpPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirectTo") ?? "/dashboard";
+
   const [fullName, setFullName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
-  const [role, setRole] = React.useState("patient"); // Added state for role
+  const [role, setRole] = React.useState("patient");
+
+  // Doctor-specific fields
+  const [specialty, setSpecialty] = React.useState(SPECIALTIES[0]);
+  const [bio, setBio] = React.useState("");
+  const [consultationFee, setConsultationFee] = React.useState("");
+
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
 
@@ -35,20 +55,27 @@ function SignUpPageContent() {
     setError(null);
 
     const supabase = createClient();
-    const { data, error } = await supabase.auth.signUp({
+
+    // Store doctor fields in user_metadata so the auth callback can
+    // insert the doctors row AFTER email verification (when profiles row exists)
+    const metadata: Record<string, unknown> = { full_name: fullName, role };
+    if (role === "doctor") {
+      metadata.specialty = specialty;
+      metadata.bio = bio;
+      metadata.consultation_fee_paise = Math.round(parseFloat(consultationFee) * 100);
+    }
+
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/verify?redirectTo=${encodeURIComponent(redirectTo)}`,
-        data: { 
-          full_name: fullName,
-          role: role // Passed the selected role to user metadata
-        },
+        emailRedirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
+        data: metadata,
       },
     });
 
-    if (error) {
-      setError(error.message);
+    if (signUpError) {
+      setError(signUpError.message);
       setLoading(false);
       return;
     }
@@ -88,13 +115,12 @@ function SignUpPageContent() {
               <Input label="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
               <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
               <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
-              
-              {/* Added native select to match Input styling without needing extra shadcn components */}
+
               <div className="grid gap-2">
                 <label className="text-sm font-medium text-white">Role</label>
-                <select 
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  value={role} 
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  value={role}
                   onChange={(e) => setRole(e.target.value)}
                 >
                   <option value="patient">Patient</option>
@@ -102,13 +128,32 @@ function SignUpPageContent() {
                 </select>
               </div>
 
+              {role === "doctor" && (
+                <>
+                  <div className="grid gap-2">
+                    <label className="text-sm font-medium text-white">Specialty</label>
+                    <select
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      value={specialty}
+                      onChange={(e) => setSpecialty(e.target.value)}
+                    >
+                      {SPECIALTIES.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <Input label="Bio (short description)" value={bio} onChange={(e) => setBio(e.target.value)} required />
+                  <Input label="Consultation fee (₹)" type="number" min="1" step="1" value={consultationFee} onChange={(e) => setConsultationFee(e.target.value)} required />
+                </>
+              )}
+
               {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
               <Button type="submit" className="mt-2" disabled={loading}>
                 {loading ? "Creating account..." : "Create account"}
               </Button>
             </form>
             <p className="mt-6 text-sm text-muted-foreground">
-              Already have an account?{' '}
+              Already have an account?{" "}
               <Link href={`/auth/login?redirectTo=${encodeURIComponent(redirectTo)}`} className="font-semibold text-primary hover:underline">
                 Sign in
               </Link>

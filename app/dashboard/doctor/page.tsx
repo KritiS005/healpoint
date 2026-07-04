@@ -11,21 +11,24 @@ export default async function DoctorDashboardPage() {
 
   if (!user) redirect("/auth/login?redirectTo=/dashboard/doctor");
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role, full_name")
     .eq("id", user.id)
     .maybeSingle();
 
+  if (profileError) console.error("[DoctorDashboard] profile fetch:", profileError.message);
   if (profile?.role === "patient") redirect("/dashboard/patient");
   if (profile?.role === "admin") redirect("/admin");
   if (profile?.role !== "doctor") redirect("/dashboard");
 
-  const { data: doctorRow } = await supabase
+  const { data: doctorRow, error: doctorError } = await supabase
     .from("doctors")
-    .select("id")
+    .select("id, specialty, bio, consultation_fee, rating")
     .eq("profile_id", user.id)
     .maybeSingle();
+
+  if (doctorError) console.error("[DoctorDashboard] doctor fetch:", doctorError.message);
 
   const doctorId = doctorRow?.id ?? null;
 
@@ -57,6 +60,10 @@ export default async function DoctorDashboardPage() {
       : Promise.resolve({ data: [], error: null }),
   ]);
 
+  if (appointmentsResult.error) console.error("[DoctorDashboard] appointments:", appointmentsResult.error.message);
+  if (patientsResult.error) console.error("[DoctorDashboard] patients:", patientsResult.error.message);
+  if (prescriptionsResult.error) console.error("[DoctorDashboard] prescriptions:", prescriptionsResult.error.message);
+
   const appointments = (appointmentsResult.data ?? []).map((a) => {
     const patientProfile = Array.isArray((a as any).patients)
       ? (a as any).patients[0]?.profiles
@@ -65,18 +72,14 @@ export default async function DoctorDashboardPage() {
       id: a.id,
       patient: patientProfile?.full_name ?? "Patient",
       time: new Date(a.scheduled_at).toLocaleString("en", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
+        weekday: "short", month: "short", day: "numeric",
+        hour: "numeric", minute: "2-digit",
       }),
       note: a.notes ?? "",
       status: (a.status === "confirmed" ? "Confirmed" : "Pending") as "Confirmed" | "Pending",
     };
   });
 
-  // Deduplicate patients by profile_id
   const seenPatients = new Set<string>();
   const patients = (patientsResult.data ?? [])
     .flatMap((a) => {
@@ -88,10 +91,7 @@ export default async function DoctorDashboardPage() {
       seenPatients.add(p.profile_id);
       return true;
     })
-    .map((p) => ({
-      id: p.id as string,
-      name: p.profiles?.full_name ?? "Patient",
-    }));
+    .map((p) => ({ id: p.id as string, name: p.profiles?.full_name ?? "Patient" }));
 
   const drafts = (prescriptionsResult.data ?? []).map((rx) => {
     const patientProfile = Array.isArray((rx as any).patients)
@@ -111,6 +111,12 @@ export default async function DoctorDashboardPage() {
       appointments={appointments}
       patients={patients}
       drafts={drafts}
+      doctorProfile={{
+        specialty: doctorRow?.specialty ?? "",
+        bio: doctorRow?.bio ?? "",
+        consultationFee: doctorRow?.consultation_fee ?? 0,
+        rating: Number(doctorRow?.rating ?? 0),
+      }}
     />
   );
 }

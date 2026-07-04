@@ -22,6 +22,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
+const SPECIALTIES = [
+  "General Practice", "Cardiology", "Neurology", "Pediatrics",
+  "Dermatology", "Orthopedics", "Gynecology", "Psychiatry", "ENT", "Ophthalmology",
+];
+
 export type AppointmentItem = {
   id: string;
   patient: string;
@@ -32,11 +37,19 @@ export type AppointmentItem = {
 export type PatientItem = { id: string; name: string };
 export type PrescriptionDraft = { id: string; title: string; patient: string; summary: string };
 
+type DoctorProfile = {
+  specialty: string;
+  bio: string;
+  consultationFee: number; // paise
+  rating: number;
+};
+
 type Props = {
   doctorName: string;
   appointments: AppointmentItem[];
   patients: PatientItem[];
   drafts: PrescriptionDraft[];
+  doctorProfile: DoctorProfile;
 };
 
 const navItems = [
@@ -74,9 +87,40 @@ function StatCard({
   );
 }
 
-export function DoctorDashboardShell({ doctorName, appointments, patients, drafts }: Props) {
+export function DoctorDashboardShell({ doctorName, appointments, patients, drafts, doctorProfile }: Props) {
   const router = useRouter();
   const pathname = usePathname();
+
+  // Profile edit state
+  const [specialty, setSpecialty] = React.useState(doctorProfile.specialty);
+  const [bio, setBio] = React.useState(doctorProfile.bio);
+  const [feeRupees, setFeeRupees] = React.useState(
+    doctorProfile.consultationFee > 0 ? String(Math.round(doctorProfile.consultationFee / 100)) : ""
+  );
+  const [saving, setSaving] = React.useState(false);
+  const [saveMsg, setSaveMsg] = React.useState<{ ok: boolean; text: string } | null>(null);
+
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    setSaveMsg(null);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setSaveMsg({ ok: false, text: "Not authenticated." }); setSaving(false); return; }
+
+    const feeInPaise = Math.round(parseFloat(feeRupees || "0") * 100);
+    const { error } = await supabase
+      .from("doctors")
+      .update({ specialty, bio, consultation_fee: feeInPaise })
+      .eq("profile_id", user.id);
+
+    if (error) {
+      console.error("[DoctorDashboard] profile update error:", error.message);
+      setSaveMsg({ ok: false, text: "Failed to save. Please try again." });
+    } else {
+      setSaveMsg({ ok: true, text: "Profile updated successfully." });
+    }
+    setSaving(false);
+  };
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -151,31 +195,65 @@ export function DoctorDashboardShell({ doctorName, appointments, patients, draft
           </header>
 
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <StatCard
-              title="Appointments"
-              value={appointments.length.toString()}
-              hint="Scheduled"
-              icon={CalendarDays}
-            />
-            <StatCard
-              title="Active patients"
-              value={patients.length.toString()}
-              hint="In queue"
-              icon={Users}
-            />
-            <StatCard
-              title="Pending notes"
-              value={drafts.length.toString()}
-              hint="Ready for review"
-              icon={FileStack}
-            />
-            <StatCard
-              title="AI summaries"
-              value={drafts.length.toString()}
-              hint="Prepared"
-              icon={Sparkles}
-            />
+            <StatCard title="Appointments" value={appointments.length.toString()} hint="Scheduled" icon={CalendarDays} />
+            <StatCard title="Active patients" value={patients.length.toString()} hint="In queue" icon={Users} />
+            <StatCard title="Pending notes" value={drafts.length.toString()} hint="Ready for review" icon={FileStack} />
+            <StatCard title="AI summaries" value={drafts.length.toString()} hint="Prepared" icon={Sparkles} />
           </section>
+
+          {/* ── Profile edit ── */}
+          <Card className="bg-white/60 backdrop-blur-lg border border-white/20 shadow-sm rounded-3xl">
+            <CardHeader>
+              <CardTitle className="text-slate-900">Your profile</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-2">
+                <label className="text-sm font-medium text-slate-700">Specialty</label>
+                <select
+                  className="flex h-10 w-full rounded-xl border border-white/30 bg-white/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                  value={specialty}
+                  onChange={(e) => setSpecialty(e.target.value)}
+                >
+                  {SPECIALTIES.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div className="grid gap-2">
+                <label className="text-sm font-medium text-slate-700">Consultation fee (₹)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={feeRupees}
+                  onChange={(e) => setFeeRupees(e.target.value)}
+                  className="flex h-10 w-full rounded-xl border border-white/30 bg-white/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                />
+              </div>
+              <div className="grid gap-2 sm:col-span-2">
+                <label className="text-sm font-medium text-slate-700">Bio</label>
+                <textarea
+                  rows={3}
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  className="w-full rounded-xl border border-white/30 bg-white/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 resize-none"
+                />
+              </div>
+              <div className="flex items-center gap-3 sm:col-span-2">
+                <button
+                  type="button"
+                  onClick={handleSaveProfile}
+                  disabled={saving}
+                  className="rounded-2xl bg-primary px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                >
+                  {saving ? "Saving…" : "Save profile"}
+                </button>
+                {saveMsg && (
+                  <p className={`text-sm font-medium ${saveMsg.ok ? "text-emerald-600" : "text-red-600"}`}>
+                    {saveMsg.text}
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
           <section className="grid gap-6 xl:grid-cols-[1.3fr_0.9fr]">
             <Card className="bg-white/60 backdrop-blur-lg border border-white/20 shadow-sm rounded-3xl">
