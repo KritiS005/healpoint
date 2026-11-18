@@ -81,7 +81,7 @@ function generateSlots(doctorId: string): Slot[] {
 }
 
 function formatFee(paise: number) {
-  return formatFeeFromPaise(paise) ?? "Fee unavailable";
+  return formatFeeFromPaise(paise);
 }
 
 const STEPS = ["Select doctor", "Choose time & type", "Confirm booking"] as const;
@@ -287,7 +287,7 @@ export function BookingShell({ doctors, specialties, headerCta }: BookingShellPr
                               </p>
                               <p className="mt-2 text-sm leading-6 text-slate-600">{doctor.bio}</p>
                             </div>
-                            <Badge variant="cyan">{formatFee(doctor.consultationFee)}</Badge>
+                            {formatFee(doctor.consultationFee) ? <Badge variant="cyan">{formatFee(doctor.consultationFee)}</Badge> : null}
                           </div>
                         </button>
                       ))}
@@ -304,7 +304,7 @@ export function BookingShell({ doctors, specialties, headerCta }: BookingShellPr
                     <p className="text-sm font-semibold text-slate-900">Selected doctor</p>
                     <p className="mt-1 text-sm text-slate-700">{selectedDoctor.fullName}</p>
                     <p className="mt-0.5 text-sm text-slate-600">
-                      {selectedDoctor.specialty} · {formatFee(selectedDoctor.consultationFee)}
+                      {selectedDoctor.specialty}{formatFee(selectedDoctor.consultationFee) ? ` · ${formatFee(selectedDoctor.consultationFee)}` : ""}
                     </p>
                   </div>
 
@@ -432,7 +432,7 @@ export function BookingShell({ doctors, specialties, headerCta }: BookingShellPr
                           <p>Time: {selectedSlot?.label}</p>
                           <p>Type: {appointmentType === "video_call" ? "Video call" : "In-person"}</p>
                           <p>Payment: {paymentMethod === "online" ? "Online (Razorpay)" : "Cash at clinic"}</p>
-                          {confirmedFee !== null && (
+                          {confirmedFee !== null && formatFee(confirmedFee) && (
                             <p className="font-semibold text-slate-900">
                               Fee: {formatFee(confirmedFee)}
                             </p>
@@ -465,7 +465,7 @@ export function BookingShell({ doctors, specialties, headerCta }: BookingShellPr
                           <p>Time: {selectedSlot?.label}</p>
                           <p>Type: {appointmentType === "video_call" ? "Video call" : "In-person"}</p>
                           <p>Payment: {paymentMethod === "online" ? "Online (Razorpay)" : "Cash at clinic"}</p>
-                          {selectedDoctor && (
+                          {selectedDoctor && formatFee(selectedDoctor.consultationFee) && (
                             <p className="font-semibold text-slate-900">
                               Fee: {formatFee(selectedDoctor.consultationFee)}
                             </p>
