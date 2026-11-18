@@ -77,8 +77,8 @@ export async function createBooking(raw: BookingInput): Promise<BookingResult> {
   //    The client never sends a fee — we read it from the DB here,
   //    which prevents any client-side fee manipulation.
   const { data: doctorRow, error: doctorError } = await supabase
-    .from("doctors")
-    .select("id, consultation_fee, verified")
+    .from("public_doctors")
+    .select("id, consultation_fee")
     .eq("id", doctorId)
     .maybeSingle();
 
@@ -88,10 +88,6 @@ export async function createBooking(raw: BookingInput): Promise<BookingResult> {
   if (!doctorRow) {
     return { success: false, error: "Doctor not found." };
   }
-  if (!doctorRow.verified) {
-    return { success: false, error: "This doctor is not yet verified on the platform." };
-  }
-
   const fee: number = doctorRow.consultation_fee as number;
 
   // 7. Check for slot collision (belt-and-suspenders on top of the DB unique constraint)

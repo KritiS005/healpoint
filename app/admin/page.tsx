@@ -19,5 +19,20 @@ export default async function AdminPage() {
     redirect("/dashboard");
   }
 
-  return <AdminShell />;
+  const { data: doctors } = await supabase
+    .from("doctors")
+    .select("id, specialty, verified, profiles(full_name)")
+    .order("created_at", { ascending: false });
+
+  const verifications = (doctors ?? []).map((doctor) => {
+    const doctorProfile = Array.isArray(doctor.profiles) ? doctor.profiles[0] : doctor.profiles;
+    return {
+      id: doctor.id,
+      name: doctorProfile?.full_name ?? "Doctor",
+      specialty: doctor.specialty,
+      status: doctor.verified ? "Approved" as const : "Pending" as const,
+    };
+  });
+
+  return <AdminShell verifications={verifications} />;
 }

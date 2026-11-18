@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { motion } from "motion/react";
 
@@ -117,18 +118,18 @@ export function FloatingNav({
         <div className="hidden items-center gap-3 lg:flex">
           {isLoggedIn ? (
             <Button asChild size="sm">
-              <a href={dashboardHref}>Go to Dashboard</a>
+              <Link href={dashboardHref}>Go to Dashboard</Link>
             </Button>
           ) : (
             <>
               <Button asChild size="sm" variant="outline">
-                <a href="/auth/login">Log in</a>
+                <Link href="/auth/login">Log in</Link>
               </Button>
               <Button asChild size="sm">
-                <a href="/auth/signup">Sign up</a>
+                <Link href="/auth/signup">Sign up</Link>
               </Button>
               <Button asChild size="sm">
-                <a href="/booking">Book Consultation</a>
+                <Link href="/booking">Book Consultation</Link>
               </Button>
             </>
           )}
@@ -176,18 +177,18 @@ export function FloatingNav({
             ))}
             {isLoggedIn ? (
               <Button asChild className="w-full" onClick={handleNavigate}>
-                <a href={dashboardHref}>Go to Dashboard</a>
+                <Link href={dashboardHref}>Go to Dashboard</Link>
               </Button>
             ) : (
               <>
                 <Button asChild variant="outline" className="mt-2 w-full" onClick={handleNavigate}>
-                  <a href="/auth/login">Log in</a>
+                  <Link href="/auth/login">Log in</Link>
                 </Button>
                 <Button asChild className="w-full" onClick={handleNavigate}>
-                  <a href="/auth/signup">Sign up</a>
+                  <Link href="/auth/signup">Sign up</Link>
                 </Button>
                 <Button asChild className="w-full" onClick={handleNavigate}>
-                  <a href="/booking">Book Consultation</a>
+                  <Link href="/booking">Book Consultation</Link>
                 </Button>
               </>
             )}

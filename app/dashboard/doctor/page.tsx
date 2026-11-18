@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { DoctorDashboardShell } from "@/components/dashboard/doctor-dashboard-shell";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
+import { getDoctorProfile } from "@/lib/doctors/get-public-doctors";
 
 export default async function DoctorDashboardPage() {
   const supabase = await createServerSupabaseClient();
@@ -14,7 +15,7 @@ export default async function DoctorDashboardPage() {
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("role, full_name")
+    .select("role, full_name, avatar_url")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -54,7 +55,7 @@ export default async function DoctorDashboardPage() {
         specialty: meta.specialty ?? "General Practice",
         bio: meta.bio ?? "",
         consultation_fee: fee,
-        verified: true,
+        verified: false,
         rating: 0,
       })
       .select("id, specialty, bio, consultation_fee, rating")
@@ -70,6 +71,12 @@ export default async function DoctorDashboardPage() {
   // ─────────────────────────────────────────────────────────────────────────
 
   const doctorId = doctorRow?.id ?? null;
+  let liveDoctorProfile = null;
+  try {
+    liveDoctorProfile = await getDoctorProfile(user.id);
+  } catch (error) {
+    console.error("[DoctorDashboard] doctor profile fetch:", error);
+  }
 
   const [appointmentsResult, patientsResult, prescriptionsResult] = await Promise.all([
     doctorId
@@ -157,15 +164,16 @@ export default async function DoctorDashboardPage() {
 
   return (
     <DoctorDashboardShell
-      doctorName={profile?.full_name?.split(" ").slice(-1)[0] ?? "Doctor"}
+      doctorName={liveDoctorProfile?.fullName ?? profile?.full_name ?? "Doctor"}
       appointments={appointments}
       patients={patients}
       drafts={drafts}
       doctorProfile={{
-        specialty: doctorRow?.specialty ?? (user.user_metadata?.specialty ?? "General Practice"),
-        bio: doctorRow?.bio ?? "",
-        consultationFee: doctorRow?.consultation_fee ?? 0,
-        rating: Number(doctorRow?.rating ?? 0),
+        avatarUrl: liveDoctorProfile?.avatarUrl ?? profile?.avatar_url ?? null,
+        specialty: liveDoctorProfile?.specialty ?? doctorRow?.specialty ?? (user.user_metadata?.specialty ?? "General Practice"),
+        bio: liveDoctorProfile?.bio ?? doctorRow?.bio ?? "",
+        consultationFee: liveDoctorProfile?.consultationFee ?? doctorRow?.consultation_fee ?? 0,
+        rating: liveDoctorProfile?.rating ?? Number(doctorRow?.rating ?? 0),
       }}
     />
   );

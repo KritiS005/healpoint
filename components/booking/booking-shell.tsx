@@ -20,6 +20,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createBooking } from "@/app/actions/booking";
 import { cn } from "@/lib/utils";
+import { formatFeeFromPaise } from "@/lib/format-fee";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -80,7 +81,7 @@ function generateSlots(doctorId: string): Slot[] {
 }
 
 function formatFee(paise: number) {
-  return `₹${(paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 0 })}`;
+  return formatFeeFromPaise(paise) ?? "Fee unavailable";
 }
 
 const STEPS = ["Select doctor", "Choose time & type", "Confirm booking"] as const;

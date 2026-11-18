@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import {
   Activity,
   AlertTriangle,
-  ArrowUpRight,
   ChevronRight,
   ClipboardList,
   LogOut,
@@ -23,9 +22,9 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 type VerificationItem = {
+  id: string;
   name: string;
   specialty: string;
-  email: string;
   status: "Pending" | "Approved";
 };
 
@@ -39,12 +38,6 @@ type AdminShellProps = {
   verifications?: VerificationItem[];
   activities?: AdminActivity[];
 };
-
-const defaultVerifications: VerificationItem[] = [
-  { name: "Dr. Nisha Rao", specialty: "Dermatology", email: "nisha@healpoint.health", status: "Pending" },
-  { name: "Dr. Arjun Malik", specialty: "Orthopedics", email: "arjun@healpoint.health", status: "Approved" },
-  { name: "Dr. Sana Iqbal", specialty: "Psychiatry", email: "sana@healpoint.health", status: "Pending" },
-];
 
 const defaultActivities: AdminActivity[] = [
   { title: "New doctor application", detail: "Dr. Nisha Rao submitted credentials for review.", time: "5 mins ago" },
@@ -86,7 +79,7 @@ function AdminStat({
   );
 }
 
-export function AdminShell({ verifications = defaultVerifications, activities = defaultActivities }: AdminShellProps) {
+export function AdminShell({ verifications = [], activities = defaultActivities }: AdminShellProps) {
   const router = useRouter();
   const [activeSection, setActiveSection] = React.useState("overview");
 
@@ -94,6 +87,11 @@ export function AdminShell({ verifications = defaultVerifications, activities = 
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/auth/login");
+  };
+
+  const approveDoctor = async (id: string) => {
+    const response = await fetch(`/api/admin/doctors/${id}/approve`, { method: "POST" });
+    if (response.ok) router.refresh();
   };
 
   return (
@@ -189,21 +187,19 @@ export function AdminShell({ verifications = defaultVerifications, activities = 
                     <CardTitle className="text-slate-900">Doctor verification queue</CardTitle>
                     <CardDescription className="text-slate-600">Pending and approved doctor applications.</CardDescription>
                   </div>
-                  <Badge variant="neutral">Mock data</Badge>
+                  <Badge variant="neutral">Live data</Badge>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
                 {verifications.map((verification) => (
-                  <div key={verification.email} className="flex items-center justify-between rounded-2xl border border-white/30 bg-white/50 p-4">
+                  <div key={verification.id} className="flex items-center justify-between rounded-2xl border border-white/30 bg-white/50 p-4">
                     <div>
                       <p className="font-semibold text-slate-900">{verification.name}</p>
-                      <p className="mt-1 text-sm text-slate-600">{verification.specialty} · {verification.email}</p>
+                      <p className="mt-1 text-sm text-slate-600">{verification.specialty}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant={verification.status === "Approved" ? "emerald" : "warning"}>{verification.status}</Badge>
-                      <button type="button" className="rounded-full border border-white/30 p-2 text-slate-500">
-                        <ArrowUpRight className="size-4" />
-                      </button>
+                      {verification.status === "Pending" ? <button type="button" onClick={() => approveDoctor(verification.id)} className="rounded-full border border-white/30 p-2 text-slate-500" aria-label={`Approve ${verification.name}`}><UserCheck className="size-4" /></button> : null}
                     </div>
                   </div>
                 ))}

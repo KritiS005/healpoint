@@ -1,5 +1,8 @@
 import dynamic from "next/dynamic";
+import { Suspense } from "react";
 
+import { FeaturedDoctorsSection } from "@/components/landing/featured-doctors-section";
+import { FeaturedDoctorsSkeleton } from "@/components/landing/featured-doctors-skeleton";
 import { FloatingNav } from "@/components/landing/floating-nav";
 import { HeroSection } from "@/components/landing/hero-section";
 import { LightDnaBackground } from "@/components/system/light-dna-background";
@@ -13,9 +16,6 @@ const SpecialtiesSection = dynamic(() =>
 );
 const HowItWorksSection = dynamic(() =>
   import("@/components/landing/section-placeholders").then((module) => module.HowItWorksSection),
-);
-const FeaturedDoctorsSection = dynamic(() =>
-  import("@/components/landing/section-placeholders").then((module) => module.FeaturedDoctorsSection),
 );
 const AIShowcaseSection = dynamic(() =>
   import("@/components/landing/section-placeholders").then((module) => module.AIShowcaseSection),
@@ -65,7 +65,9 @@ export default async function Home() {
         <TrustSection />
         <SpecialtiesSection />
         <HowItWorksSection />
-        <FeaturedDoctorsSection />
+        <Suspense fallback={<FeaturedDoctorsSkeleton />}>
+          <FeaturedDoctorsSection />
+        </Suspense>
         <AIShowcaseSection />
         <TestimonialsSection />
         <SecuritySection />

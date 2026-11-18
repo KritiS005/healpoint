@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
           specialty,
           bio,
           consultation_fee: fee,
-          verified: true,
+          verified: false,
           rating: 0,
         });
 

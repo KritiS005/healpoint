@@ -22,6 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { DOCTOR_SPECIALTIES } from "@/lib/constants/specialties";
+import { formatFeeFromPaise } from "@/lib/format-fee";
 
 // SPECIALTIES is now imported from the centralized list — no local duplicate
 
@@ -36,6 +37,7 @@ export type PatientItem = { id: string; name: string };
 export type PrescriptionDraft = { id: string; title: string; patient: string; summary: string };
 
 type DoctorProfile = {
+  avatarUrl: string | null;
   specialty: string;
   bio: string;
   consultationFee: number; // paise
@@ -185,7 +187,7 @@ export function DoctorDashboardShell({ doctorName, appointments, patients, draft
         <main className="flex-1 space-y-6">
           <header className="bg-white/60 backdrop-blur-lg border border-white/20 shadow-sm rounded-3xl p-6">
             <h1 className="text-3xl font-semibold text-slate-900">
-              Good morning, Dr. {doctorName}
+              Good morning, {doctorName}
             </h1>
             <p className="mt-1 text-sm text-slate-600">
               Here&apos;s your clinical overview for today.
@@ -202,7 +204,21 @@ export function DoctorDashboardShell({ doctorName, appointments, patients, draft
           {/* ── Profile edit ── */}
           <Card className="bg-white/60 backdrop-blur-lg border border-white/20 shadow-sm rounded-3xl">
             <CardHeader>
-              <CardTitle className="text-slate-900">Your profile</CardTitle>
+              <div className="flex items-center gap-4">
+                {doctorProfile.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={doctorProfile.avatarUrl} alt="" className="size-14 rounded-full object-cover" />
+                ) : (
+                  <div className="grid size-14 place-items-center rounded-full bg-primary/10 text-lg font-semibold text-primary">
+                    {doctorName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <CardTitle className="text-slate-900">{doctorName}</CardTitle>
+                  <p className="mt-1 text-sm text-slate-600">{doctorProfile.specialty}</p>
+                  {formatFeeFromPaise(doctorProfile.consultationFee) ? <p className="mt-1 text-sm font-medium text-slate-700">Consultation fee: {formatFeeFromPaise(doctorProfile.consultationFee)}</p> : null}
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-2">

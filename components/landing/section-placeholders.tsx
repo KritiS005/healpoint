@@ -1,17 +1,14 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
 import {
   Brain,
   BriefcaseBusiness,
   ChevronDown,
   CheckCircle2,
-  Clock3,
   Cloud,
   Database,
   HeartPulse,
-  Languages,
   LockKeyhole,
   Mail,
   MessageCircle,
@@ -21,7 +18,6 @@ import {
   Stethoscope,
   Star,
   Smartphone,
-  TabletSmartphone,
   Upload,
   UserRoundCheck,
 } from "lucide-react";
@@ -140,39 +136,6 @@ const steps = [
   {
     title: "Receive AI-assisted explanation",
     description: "Review non-diagnostic summaries that make medical reports easier to discuss.",
-  },
-];
-
-const doctors = [
-  {
-    name: "Dr. Ananya Sen",
-    specialization: "Cardiologist",
-    experience: "14 years",
-    languages: ["English", "Hindi", "Bengali"],
-    rating: "4.9",
-    fee: "₹599",
-    nextSlot: "Today, 5:30 PM",
-    image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 320'%3E%3Crect width='320' height='320' fill='%231a1510'/%3E%3Ccircle cx='160' cy='118' r='58' fill='%23b89048' fill-opacity='0.2'/%3E%3Cpath d='M70 292c16-68 58-102 90-102s74 34 90 102' fill='%23b89048' fill-opacity='0.5'/%3E%3C/svg%3E",
-  },
-  {
-    name: "Dr. Rahim Khan",
-    specialization: "Neurologist",
-    experience: "16 years",
-    languages: ["Hindi", "English", "Urdu"],
-    rating: "4.8",
-    fee: "₹649",
-    nextSlot: "Tomorrow, 11:00 AM",
-    image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 320'%3E%3Crect width='320' height='320' fill='%2314141c'/%3E%3Ccircle cx='160' cy='116' r='56' fill='%23d4af37' fill-opacity='0.25'/%3E%3Cpath d='M68 292c18-66 58-100 92-100s74 34 92 100' fill='%23d4af37' fill-opacity='0.45'/%3E%3C/svg%3E",
-  },
-  {
-    name: "Dr. Meera Iyer",
-    specialization: "Pediatrician",
-    experience: "12 years",
-    languages: ["Tamil", "English", "Telugu", "Hindi"],
-    rating: "4.9",
-    fee: "₹449",
-    nextSlot: "Today, 7:00 PM",
-    image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 320'%3E%3Crect width='320' height='320' fill='%23121512'/%3E%3Ccircle cx='160' cy='118' r='58' fill='%23f59e0b' fill-opacity='0.2'/%3E%3Cpath d='M72 292c18-68 58-102 88-102s70 34 88 102' fill='%23f59e0b' fill-opacity='0.45'/%3E%3C/svg%3E",
   },
 ];
 
@@ -509,88 +472,6 @@ export function HowItWorksSection() {
               </div>
               <h3 className="text-lg font-semibold text-slate-800">{step.title}</h3>
               <p className="mt-3 text-sm leading-relaxed text-slate-600 font-light">{step.description}</p>
-            </PremiumCard>
-          </motion.div>
-        ))}
-      </Reveal>
-    </section>
-  );
-}
-
-export function FeaturedDoctorsSection() {
-  return (
-    <section id="doctors" className="page-shell relative overflow-hidden py-20 lg:py-28">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle,_rgba(31,111,235,0.08),_transparent_70%)]" />
-      <Reveal className="mb-10 max-w-3xl">
-        <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-[#1f6feb]">Doctors</p>
-        <h2 className="text-section text-slate-800 font-bold leading-tight">Featured physicians with verified clinical expertise.</h2>
-      </Reveal>
-
-      <Reveal stagger className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 z-10 relative">
-        {doctors.map((doctor) => (
-          <motion.div key={doctor.name} variants={reveal} whileHover={{ y: -6, scale: 1.01 }} transition={{ type: "spring", stiffness: 180, damping: 20 }}>
-            <PremiumCard className="group h-full overflow-hidden border border-white/80 bg-white/80 p-0 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl transition duration-300 hover:border-[#1f6feb]/35 hover:shadow-[0_24px_80px_rgba(31,111,235,0.12)]">
-              <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
-                <Image
-                  src={doctor.image}
-                  alt={`${doctor.name} profile`}
-                  fill
-                  unoptimized
-                  sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-                  className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.05]"
-                />
-                <Badge variant="glass" className="absolute right-4 top-4 border-[#1f6feb]/20 text-[#1f6feb] bg-white/80">
-                  <UserRoundCheck className="size-3.5 mr-1" />
-                  Verified
-                </Badge>
-              </div>
-
-              <div className="p-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h3 className="text-xl font-semibold text-slate-800 group-hover:text-[#1f6feb] transition-colors">{doctor.name}</h3>
-                    <p className="mt-1 text-xs text-[#1f6feb]/80 font-medium">{doctor.specialization}</p>
-                  </div>
-                  <Badge variant="cyan" className="border-[#1f6feb]/20">{doctor.rating}</Badge>
-                </div>
-
-                <div className="mt-5 grid gap-3 text-sm text-slate-600 font-light border-y border-slate-100 py-4">
-                  <p className="flex items-center gap-2">
-                    <Clock3 className="size-4 text-[#1f6feb]" />
-                    {doctor.experience} experience
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <TabletSmartphone className="size-4 text-[#1f6feb]" />
-                    {doctor.fee} consultation fee
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <LockKeyhole className="size-4 text-[#1f6feb]" />
-                    Next available: <span className="text-emerald-600 font-medium">{doctor.nextSlot}</span>
-                  </p>
-                </div>
-
-                <div className="mt-4">
-                  <p className="mb-2 flex items-center gap-2 text-[10px] uppercase tracking-wider font-semibold text-slate-500">
-                    <Languages className="size-3.5 text-[#1f6feb]" />
-                    Languages
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {doctor.languages.map((language, index) => (
-                      <Badge
-                        key={language}
-                        variant={index === 0 ? "emerald" : "neutral"}
-                        className={cn("bg-slate-50 border-slate-200 text-slate-600", index === 0 && "bg-emerald-50 border-emerald-200 text-emerald-700")}
-                      >
-                        {language}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                <Button asChild className="mt-6 w-full border-none bg-gradient-to-r from-[#1f6feb] to-[#10c4c4] text-white shadow-[0_8px_24px_rgba(31,111,235,0.22)] transition-all duration-300 hover:from-[#1a5fd4] hover:to-[#0eafaf] hover:shadow-[0_10px_28px_rgba(31,111,235,0.32)]">
-                  <a href="/booking">Book Now</a>
-                </Button>
-              </div>
             </PremiumCard>
           </motion.div>
         ))}
