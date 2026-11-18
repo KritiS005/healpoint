@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { AppProviders } from "@/components/providers/app-providers";
-import { PageTransition } from "@/components/motion/page-transition";
 
 import "./globals.css";
 
@@ -46,7 +45,7 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col">
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-        <AppProviders><PageTransition>{children}</PageTransition></AppProviders>
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );

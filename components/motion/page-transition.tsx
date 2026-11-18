@@ -6,8 +6,8 @@ import { pageTransition } from "@/lib/design-system/motion";
 
 export function PageTransition({ children }: { children: React.ReactNode }) {
   return (
-    <motion.div initial="initial" animate="animate" exit="exit" variants={pageTransition}>
+    <motion.main initial="initial" animate="animate" exit="exit" variants={pageTransition}>
       {children}
-    </motion.div>
+    </motion.main>
   );
 }
