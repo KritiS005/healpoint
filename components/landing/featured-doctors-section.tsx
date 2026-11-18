@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { PremiumCard } from "@/components/ui/card";
 import { getPublicDoctors } from "@/lib/doctors/get-public-doctors";
 import { formatFeeFromPaise } from "@/lib/format-fee";
@@ -29,7 +29,7 @@ export async function FeaturedDoctorsSection() {
         <div className="relative z-10 rounded-3xl border border-white/80 bg-white/80 p-8 text-center shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl">
           <h3 className="text-xl font-semibold text-slate-800">Doctors are joining soon</h3>
           <p className="mt-2 text-sm text-slate-600">Please check back soon, or browse consultations when the directory is available.</p>
-          <Button asChild className="mt-5"><Link href="/booking">Go to booking</Link></Button>
+          <Link href="/booking" className={buttonVariants({ className: "mt-5" })}>Go to booking</Link>
         </div>
       ) : (
         <div className="relative z-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -49,7 +49,7 @@ export async function FeaturedDoctorsSection() {
                 </div>
                 {doctor.bio ? <p className="mt-4 line-clamp-3 text-sm leading-6 text-slate-600">{doctor.bio}</p> : null}
                 {formatFeeFromPaise(doctor.consultationFee) ? <p className="mt-5 border-t border-slate-100 pt-4 text-sm text-slate-600">Consultation fee <span className="font-semibold text-slate-800">{formatFeeFromPaise(doctor.consultationFee)}</span></p> : null}
-                <Button asChild className="mt-6 w-full"><Link href="/booking">Book consultation</Link></Button>
+                <Link href="/booking" className={buttonVariants({ className: "mt-6 w-full" })}>Book consultation</Link>
               </div>
             </PremiumCard>
           ))}

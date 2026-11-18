@@ -31,7 +31,6 @@ export async function PATCH(request: NextRequest, context: AppointmentRouteConte
     .from("appointments")
     .select("id,status,patient_id,doctor_id,patients(profile_id),doctors(profile_id)")
     .eq("id", id)
-    .is("deleted_at", null)
     .maybeSingle();
 
   if (!current) {

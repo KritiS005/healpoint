@@ -22,7 +22,6 @@ export default async function DoctorPatientsPage() {
         .from("appointments")
         .select("patients(id, profile_id, profiles(full_name))")
         .eq("doctor_id", doctorRow.id)
-        .is("deleted_at", null)
     : { data: [], error: null };
 
   if (error) throw new Error("Could not load patients.");

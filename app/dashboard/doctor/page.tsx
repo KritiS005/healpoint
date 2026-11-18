@@ -84,7 +84,6 @@ export default async function DoctorDashboardPage() {
           .from("appointments")
           .select("id, scheduled_at, status, notes, patients(profiles(full_name))")
           .eq("doctor_id", doctorId)
-          .is("deleted_at", null)
           .order("scheduled_at", { ascending: true })
           .limit(10)
       : Promise.resolve({ data: [], error: null }),
@@ -93,7 +92,6 @@ export default async function DoctorDashboardPage() {
           .from("appointments")
           .select("patients(id, profile_id, profiles(full_name))")
           .eq("doctor_id", doctorId)
-          .is("deleted_at", null)
           .limit(20)
       : Promise.resolve({ data: [], error: null }),
     doctorId

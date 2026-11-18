@@ -16,7 +16,6 @@ export async function GET() {
   const { data, error } = await supabase
     .from("appointments")
     .select("*, doctors(*, profiles(full_name)), patients(*, profiles(full_name)), payments(*), call_rooms(*)")
-    .is("deleted_at", null)
     .order("scheduled_at", { ascending: true });
 
   if (error) {
@@ -59,7 +58,6 @@ export async function POST(request: NextRequest) {
     .select("id")
     .eq("doctor_id", parsed.data.doctorId)
     .eq("scheduled_at", scheduledAt.toISOString())
-    .is("deleted_at", null)
     .maybeSingle();
 
   if (collision) {

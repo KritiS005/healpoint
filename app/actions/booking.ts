@@ -96,7 +96,6 @@ export async function createBooking(raw: BookingInput): Promise<BookingResult> {
     .select("id")
     .eq("doctor_id", doctorId)
     .eq("scheduled_at", new Date(scheduledAt).toISOString())
-    .is("deleted_at", null)
     .maybeSingle();
 
   if (collision) {

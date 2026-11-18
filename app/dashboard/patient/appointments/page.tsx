@@ -23,7 +23,6 @@ export default async function PatientAppointmentsPage() {
         .from("appointments")
         .select("id, scheduled_at, status, notes, doctors(profiles(full_name))")
         .eq("patient_id", patientRow.id)
-        .is("deleted_at", null)
         .order("scheduled_at", { ascending: true })
     : { data: [], error: null };
 
